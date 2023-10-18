@@ -32,6 +32,14 @@
                                  The drawn value is considered Personally identifiable information (PII) and is more sensitive to keep. It is encrypted in the database."
                                  horizontal
                                  :items="signatureInputTypes" />
+
+                <CheckBox v-model="validInFuture"
+                         label="Valid In Future"
+                         help="Determines if documents of this type should be considered valid for future eligibility needs." />
+                <NumberBox v-model="validityDurationInDays"
+                            v-if="validInFuture"
+                            label="Valid Duration Days"
+                            help="The number of days a signed document of this type will be considered valid." />
             </div>
 
             <div class="col-md-6">
@@ -178,6 +186,7 @@
     import CheckBox from "@Obsidian/Controls/checkBox.obs";
     import TextBox from "@Obsidian/Controls/textBox.obs";
     import NotificationBox from "@Obsidian/Controls/notificationBox.obs";
+    import NumberBox from "@Obsidian/Controls/numberBox.obs";
     import RadioButtonList from "@Obsidian/Controls/radioButtonList.obs";
     import BinaryFileTypePicker from "@Obsidian/Controls/binaryFileTypePicker.obs";
     import DropDownList from "@Obsidian/Controls/dropDownList.obs";
@@ -228,6 +237,8 @@
     const providerEntityType = propertyRef(props.modelValue.providerEntityType ?? null, "ProviderEntityTypeId");
     const providerTemplateKey = propertyRef(props.modelValue.providerTemplateKey ?? "", "ProviderTemplateKey");
     const lavaTemplate = propertyRef(props.modelValue.lavaTemplate ?? "", "LavaTemplate");
+    const validInFuture = propertyRef(props.modelValue.isValidInFuture ?? false, "IsValidInFuture");
+    const validityDurationInDays = propertyRef(props.modelValue.validityDurationInDays ?? 0, "ValidityDurationInDays");
     const communicationTemplates = ref(props.options.communicationTemplates ?? []);
     const showLegacyExternalProviders = ref(props.options.showLegacyExternalProviders);
     const externalProviders = ref<ListItemBag[]>([]);
@@ -240,7 +251,7 @@
 
     // The properties that are being edited. This should only contain
     // objects returned by propertyRef().
-    const propRefs = [description, isActive, name, documentTerm, signatureType, binaryFileType, completionSystemCommunicationValue, lavaTemplate, providerTemplateKey, providerEntityType];
+    const propRefs = [description, isActive, name, documentTerm, signatureType, binaryFileType, completionSystemCommunicationValue, lavaTemplate, providerTemplateKey, providerEntityType, validInFuture, validityDurationInDays];
 
     // #endregion
 
@@ -329,6 +340,8 @@
         updateRefValue(lavaTemplate, props.modelValue.lavaTemplate ?? "");
         updateRefValue(providerTemplateKey, props.modelValue.providerTemplateKey ?? "");
         updateRefValue(providerEntityType, props.modelValue.providerEntityType ?? {});
+        updateRefValue(validInFuture, props.modelValue.isValidInFuture ?? false);
+        updateRefValue(validityDurationInDays, props.modelValue.validityDurationInDays ?? 0);
         updateRefValue(showLegacyExternalProviders, props.options.showLegacyExternalProviders);
     });
 
@@ -345,6 +358,8 @@
             binaryFileType: binaryFileType.value,
             completionSystemCommunication: { value: completionSystemCommunicationValue.value },
             lavaTemplate: lavaTemplate.value,
+            isValidInFuture: validInFuture.value,
+            validityDurationInDays: validityDurationInDays.value,
             providerTemplateKey: providerTemplateKey.value,
             providerEntityType: providerEntityType.value,
             documentTerm: documentTerm.value
