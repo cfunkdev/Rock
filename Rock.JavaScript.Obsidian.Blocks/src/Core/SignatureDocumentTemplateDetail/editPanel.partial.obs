@@ -33,13 +33,14 @@
                                  horizontal
                                  :items="signatureInputTypes" />
 
-                <CheckBox v-model="validInFuture"
+                <CheckBox v-model="isValidInFuture"
                          label="Valid In Future"
                          help="Determines if documents of this type should be considered valid for future eligibility needs." />
                 <NumberBox v-model="validityDurationInDays"
-                            v-if="validInFuture"
+                            v-if="isValidInFuture"
                             label="Valid Duration Days"
-                            help="The number of days a signed document of this type will be considered valid." />
+                            help="The number of days a signed document of this type will be considered valid."
+                            rules="required"/>
             </div>
 
             <div class="col-md-6">
@@ -237,7 +238,7 @@
     const providerEntityType = propertyRef(props.modelValue.providerEntityType ?? null, "ProviderEntityTypeId");
     const providerTemplateKey = propertyRef(props.modelValue.providerTemplateKey ?? "", "ProviderTemplateKey");
     const lavaTemplate = propertyRef(props.modelValue.lavaTemplate ?? "", "LavaTemplate");
-    const validInFuture = propertyRef(props.modelValue.isValidInFuture ?? false, "IsValidInFuture");
+    const isValidInFuture = propertyRef(props.modelValue.isValidInFuture ?? false, "IsValidInFuture");
     const validityDurationInDays = propertyRef(props.modelValue.validityDurationInDays ?? 0, "ValidityDurationInDays");
     const communicationTemplates = ref(props.options.communicationTemplates ?? []);
     const showLegacyExternalProviders = ref(props.options.showLegacyExternalProviders);
@@ -251,7 +252,7 @@
 
     // The properties that are being edited. This should only contain
     // objects returned by propertyRef().
-    const propRefs = [description, isActive, name, documentTerm, signatureType, binaryFileType, completionSystemCommunicationValue, lavaTemplate, providerTemplateKey, providerEntityType, validInFuture, validityDurationInDays];
+    const propRefs = [description, isActive, name, documentTerm, signatureType, binaryFileType, completionSystemCommunicationValue, lavaTemplate, providerTemplateKey, providerEntityType, isValidInFuture, validityDurationInDays];
 
     // #endregion
 
@@ -340,7 +341,7 @@
         updateRefValue(lavaTemplate, props.modelValue.lavaTemplate ?? "");
         updateRefValue(providerTemplateKey, props.modelValue.providerTemplateKey ?? "");
         updateRefValue(providerEntityType, props.modelValue.providerEntityType ?? {});
-        updateRefValue(validInFuture, props.modelValue.isValidInFuture ?? false);
+        updateRefValue(isValidInFuture, props.modelValue.isValidInFuture ?? false);
         updateRefValue(validityDurationInDays, props.modelValue.validityDurationInDays ?? 0);
         updateRefValue(showLegacyExternalProviders, props.options.showLegacyExternalProviders);
     });
@@ -358,7 +359,7 @@
             binaryFileType: binaryFileType.value,
             completionSystemCommunication: { value: completionSystemCommunicationValue.value },
             lavaTemplate: lavaTemplate.value,
-            isValidInFuture: validInFuture.value,
+            isValidInFuture: isValidInFuture.value,
             validityDurationInDays: validityDurationInDays.value,
             providerTemplateKey: providerTemplateKey.value,
             providerEntityType: providerEntityType.value,

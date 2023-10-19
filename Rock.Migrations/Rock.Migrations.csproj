@@ -76,6 +76,14 @@
     <Compile Include="Migrations\202310140012542_AddAuthClientScopeApprovalExpiration.designer.cs">
       <DependentUpon>202310140012542_AddAuthClientScopeApprovalExpiration.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202310172315570_CreatePropertySignedDocumentTemplate.cs" />
+    <Compile Include="Migrations\202310172315570_CreatePropertySignedDocumentTemplate.designer.cs">
+      <DependentUpon>202310172315570_CreatePropertySignedDocumentTemplate.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202310182014500_CreatedSignatureDocuemnIdColumnOnRegistrationRegistrant.cs" />
+    <Compile Include="Migrations\202310182014500_CreatedSignatureDocuemnIdColumnOnRegistrationRegistrant.designer.cs">
+      <DependentUpon>202310182014500_CreatedSignatureDocuemnIdColumnOnRegistrationRegistrant.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Version 16.0\Version 1.16.0\202309211800387_Rollup_20230921.cs" />
     <Compile Include="Migrations\Version 16.0\Version 1.16.0\202309211800387_Rollup_20230921.designer.cs">
       <DependentUpon>202309211800387_Rollup_20230921.cs</DependentUpon>
@@ -1850,6 +1858,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202310140012542_AddAuthClientScopeApprovalExpiration.resx">
       <DependentUpon>202310140012542_AddAuthClientScopeApprovalExpiration.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202310172315570_CreatePropertySignedDocumentTemplate.resx">
+      <DependentUpon>202310172315570_CreatePropertySignedDocumentTemplate.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202310182014500_CreatedSignatureDocuemnIdColumnOnRegistrationRegistrant.resx">
+      <DependentUpon>202310182014500_CreatedSignatureDocuemnIdColumnOnRegistrationRegistrant.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\Version 16.0\Version 1.16.0\202309211800387_Rollup_20230921.resx">
       <DependentUpon>202309211800387_Rollup_20230921.cs</DependentUpon>

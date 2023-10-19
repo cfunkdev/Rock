@@ -78,7 +78,7 @@
         "providerEntityType",
         "providerTemplateKey",
         "signatureType",
-        "validInFuture",
+        "isValidInFuture",
         "validityDurationInDays"
     ];
 
