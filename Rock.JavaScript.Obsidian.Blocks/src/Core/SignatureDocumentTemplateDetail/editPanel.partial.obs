@@ -40,6 +40,7 @@
                             v-if="isValidInFuture"
                             label="Valid Duration Days"
                             help="The number of days a signed document of this type will be considered valid."
+                            minimum-value="1"
                             rules="required"/>
             </div>
 
@@ -239,7 +240,7 @@
     const providerTemplateKey = propertyRef(props.modelValue.providerTemplateKey ?? "", "ProviderTemplateKey");
     const lavaTemplate = propertyRef(props.modelValue.lavaTemplate ?? "", "LavaTemplate");
     const isValidInFuture = propertyRef(props.modelValue.isValidInFuture ?? false, "IsValidInFuture");
-    const validityDurationInDays = propertyRef(props.modelValue.validityDurationInDays ?? 0, "ValidityDurationInDays");
+    const validityDurationInDays = propertyRef(props.modelValue.validityDurationInDays, "ValidityDurationInDays");
     const communicationTemplates = ref(props.options.communicationTemplates ?? []);
     const showLegacyExternalProviders = ref(props.options.showLegacyExternalProviders);
     const externalProviders = ref<ListItemBag[]>([]);
@@ -342,7 +343,7 @@
         updateRefValue(providerTemplateKey, props.modelValue.providerTemplateKey ?? "");
         updateRefValue(providerEntityType, props.modelValue.providerEntityType ?? {});
         updateRefValue(isValidInFuture, props.modelValue.isValidInFuture ?? false);
-        updateRefValue(validityDurationInDays, props.modelValue.validityDurationInDays ?? 0);
+        updateRefValue(validityDurationInDays, props.modelValue.validityDurationInDays);
         updateRefValue(showLegacyExternalProviders, props.options.showLegacyExternalProviders);
     });
 
