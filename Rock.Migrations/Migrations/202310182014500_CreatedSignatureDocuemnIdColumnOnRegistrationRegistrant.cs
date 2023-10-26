@@ -32,6 +32,14 @@ namespace Rock.Migrations
             AddColumn("dbo.RegistrationRegistrant", "SignatureDocumentId", c => c.Int());
             CreateIndex("dbo.RegistrationRegistrant", "SignatureDocumentId");
             AddForeignKey("dbo.RegistrationRegistrant", "SignatureDocumentId", "dbo.SignatureDocument", "Id");
+
+            Sql( @"DECLARE @RegistrationRegistrantEntityTypeId INT = (SELECT [Id] FROM [EntityType] WHERE [Guid] = '8A25E5CE-1B4F-4825-BCEA-216167836305');
+                    UPDATE rr
+	                    SET [SignatureDocumentId] = sd.[Id]
+                    FROM [RegistrationRegistrant] rr JOIN [SignatureDocument] sd ON rr.[Id] = sd.[EntityId] AND sd.[EntityTypeId] = @RegistrationRegistrantEntityTypeId;
+                    UPDATE [SignatureDocument]
+                        SET [EntityId] = NULL, [EntityTypeId] = NULL
+                    WHERE [EntityTypeId] = @RegistrationRegistrantEntityTypeId" );
         }
         
         /// <summary>
@@ -42,13 +50,6 @@ namespace Rock.Migrations
             DropForeignKey("dbo.RegistrationRegistrant", "SignatureDocumentId", "dbo.SignatureDocument");
             DropIndex("dbo.RegistrationRegistrant", new[] { "SignatureDocumentId" });
             DropColumn("dbo.RegistrationRegistrant", "SignatureDocumentId");
-            Sql( @"DECLARE @RegistrationRegistrantEntityTypeId INT = (SELECT [Id] FROM [EntityType] WHERE [Guid] = '8A25E5CE-1B4F-4825-BCEA-216167836305');
-                    UPDATE rr
-	                    SET [SignatureDocumentId] = sd.[EntityId]
-                    FROM [RegistrationRegistrant] rr JOIN [SignatureDocument] sd ON rr.[Id] = sd.[EntityId] AND sd.[EntityTypeId] = @RegistrationRegistrantEntityTypeId;
-                    UPDATE [SignatureDocument]
-                        SET [EntityId] = NULL, [EntityTypeId] = NULL
-                    WHERE [EntityTypeId] = @RegistrationRegistrantEntityTypeId" );
         }
     }
 }
