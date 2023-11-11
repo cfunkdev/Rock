@@ -993,6 +993,7 @@
     <Compile Include="Event\InteractiveExperiences\VisualizerTypeComponents\BarChart.cs" />
     <Compile Include="Event\InteractiveExperiences\VisualizerTypeComponents\WordCloud.cs" />
     <Compile Include="Event\InteractiveExperiences\VisualizerTypeContainer.cs" />
+    <Compile Include="Field\ClientFieldTypeGuidAttribute.cs" />
     <Compile Include="Field\IEntityReferenceFieldType.cs" />
     <Compile Include="Field\ISplitMultiValueFieldType.cs" />
     <Compile Include="Field\PersistedValues.cs" />
@@ -1000,6 +1001,7 @@
     <Compile Include="Field\ReferencedProperty.cs" />
     <Compile Include="Field\Types\ColorSelectorFieldType.cs" />
     <Compile Include="Field\Types\GroupMemberRequirementFieldType.cs" />
+    <Compile Include="Field\Types\ItemValuePickerFieldType.cs" />
     <Compile Include="Field\Types\MediaSelectorFieldType.cs" />
     <Compile Include="Field\Types\ReminderTypeFieldType.cs" />
     <Compile Include="Field\Types\ReminderTypesFieldType.cs" />
