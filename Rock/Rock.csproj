@@ -1006,6 +1006,7 @@
     <Compile Include="Field\Types\ReminderTypeFieldType.cs" />
     <Compile Include="Field\Types\ReminderTypesFieldType.cs" />
     <Compile Include="Field\Types\SecondaryAuthsFieldType.cs" />
+    <Compile Include="Field\Types\StandardItemFieldType.cs" />
     <Compile Include="Field\Types\SystemPhoneNumberFieldType.cs" />
     <Compile Include="Financial\ISettlementGateway.cs" />
     <Compile Include="IpAddress\Classes\IpLocation.cs" />
