@@ -14,10 +14,6 @@
 // limitations under the License.
 // </copyright>
 //
-#if WEBFORMS
-#endif
-
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -49,10 +45,21 @@ namespace Rock.Field.Types
         public sealed override Type AttributeValueFieldType => base.AttributeValueFieldType;
 
         /// <inheritdoc/>
-        public sealed override Model.ComparisonType FilterComparisonType => ComparisonHelper.ContainsFilterComparisonTypes;
+        public sealed override Model.ComparisonType FilterComparisonType
+        {
+            get => SelectionMode == ValuePickerSelectionMode.Multiple
+                ? ComparisonHelper.ContainsFilterComparisonTypes
+                : ComparisonHelper.BinaryFilterComparisonTypes;
+        }
 
         /// <inheritdoc/>
         public sealed override bool HasDefaultControl => true;
+
+        /// <summary>
+        /// The selection mode of this field type. Field types configured for
+        /// multiple selection will be stored as a comma seperated list of values.
+        /// </summary>
+        protected virtual ValuePickerSelectionMode SelectionMode => ValuePickerSelectionMode.Single;
 
         #endregion
 
@@ -66,6 +73,20 @@ namespace Rock.Field.Types
         protected virtual List<string> GetAutoUpdatingConfigurationKeys()
         {
             return new List<string>();
+        }
+
+        /// <summary>
+        /// Gets the value as a list of string values. If the field type is
+        /// configured for single selection then this returns an array of
+        /// either 0 or 1 items. If the field type is configured for multiple
+        /// selection then this will return an array that contains all the
+        /// selected values.
+        /// </summary>
+        /// <param name="privateValue">The private value stored in the database.</param>
+        /// <returns>A list of strings that represent the individual values.</returns>
+        protected List<string> GetValueAsList( string privateValue )
+        {
+            return privateValue.Split( new[] { ',' }, StringSplitOptions.RemoveEmptyEntries ).ToList();
         }
 
         #endregion
@@ -99,6 +120,28 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override Expression AttributeFilterExpression( Dictionary<string, ConfigurationValue> configurationValues, List<string> filterValues, ParameterExpression parameterExpression )
         {
+            if ( SelectionMode == ValuePickerSelectionMode.Single && filterValues.Count == 1 )
+            {
+                var selectedValues = GetValueAsList( filterValues[0] );
+                var propertyExpression = Expression.Property( parameterExpression, "Value" );
+
+                if ( selectedValues.Count == 0 )
+                {
+                    // No Value specified, so return NoAttributeFilterExpression ( which means don't filter )
+                    return new NoAttributeFilterExpression();
+                }
+                else if ( selectedValues.Count == 1 )
+                {
+                    // only one value, so do an Equal instead of Contains which might compile a little bit faster
+                    return ComparisonHelper.ComparisonExpression( Rock.Model.ComparisonType.EqualTo, propertyExpression, AttributeConstantExpression( selectedValues[0] ) );
+                }
+                else
+                {
+                    ConstantExpression constantExpression = Expression.Constant( selectedValues, typeof( List<string> ) );
+                    return Expression.Call( constantExpression, typeof( List<string> ).GetMethod( "Contains", new Type[] { typeof( string ) } ), propertyExpression );
+                }
+            }
+
             return base.AttributeFilterExpression( configurationValues, filterValues, parameterExpression );
         }
 
@@ -109,8 +152,13 @@ namespace Rock.Field.Types
         }
 
         /// <inheritdoc/>
-        public sealed override string GetEqualToCompareValue()
+        public override string GetEqualToCompareValue()
         {
+            if ( SelectionMode == ValuePickerSelectionMode.Single )
+            {
+                return null;
+            }
+
             return base.GetEqualToCompareValue();
         }
 
@@ -153,40 +201,11 @@ namespace Rock.Field.Types
 
         #region Custom Configuration Value Methods
 
-        public sealed override string FormatFilterValueValue( Dictionary<string, ConfigurationValue> configurationValues, string value )
-        {
-            return base.FormatFilterValueValue( configurationValues, value );
-        }
-
-        //public sealed override string GetCondensedHtmlValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
-        //{
-        //    return base.GetCondensedHtmlValue( privateValue, privateConfigurationValues );
-        //}
-
-        //public sealed override string GetCondensedTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
-        //{
-        //    return base.GetCondensedTextValue( privateValue, privateConfigurationValues );
-        //}
-
-        //public sealed override string GetHtmlValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
-        //{
-        //    return base.GetHtmlValue( privateValue, privateConfigurationValues );
-        //}
-
-        //public sealed override string GetTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
-        //{
-        //    return base.GetTextValue( privateValue, privateConfigurationValues );
-        //}
-
+        /// <inheritdoc/>
         public sealed override string GetPersistedValuePlaceholder( Dictionary<string, string> privateConfigurationValues )
         {
             return base.GetPersistedValuePlaceholder( privateConfigurationValues );
         }
-
-        //public sealed override PersistedValues GetPersistedValues( string privateValue, Dictionary<string, string> privateConfigurationValues, IDictionary<string, object> cache )
-        //{
-        //    return base.GetPersistedValues( privateValue, privateConfigurationValues, cache );
-        //}
 
         public sealed override string GetPrivateEditValue( string publicValue, Dictionary<string, string> privateConfigurationValues )
         {
@@ -198,36 +217,25 @@ namespace Rock.Field.Types
             return base.GetPublicValue( privateValue, privateConfigurationValues );
         }
 
-        //public sealed override bool IsPersistedValueInvalidated( Dictionary<string, string> oldPrivateConfigurationValues, Dictionary<string, string> newPrivateConfigurationValues )
-        //{
-        //    return base.IsPersistedValueInvalidated( oldPrivateConfigurationValues, newPrivateConfigurationValues );
-        //}
-
-        //public sealed override bool IsPersistedValueSupported( Dictionary<string, string> privateConfigurationValues )
-        //{
-        //    return base.IsPersistedValueSupported( privateConfigurationValues );
-        //}
-
-        //public sealed override bool IsPersistedValueVolatile( Dictionary<string, string> privateConfigurationValues )
-        //{
-        //    return base.IsPersistedValueVolatile( privateConfigurationValues );
-        //}
-
+        /// <inheritdoc/>
         public sealed override bool IsSensitive()
         {
-            return base.IsSensitive();
+            return false;
         }
 
+        /// <inheritdoc/>
         public sealed override bool IsValid( string value, bool required, out string message )
         {
             return base.IsValid( value, required, out message );
         }
 
+        /// <inheritdoc/>
         public sealed override object ValueAsFieldType( string value, Dictionary<string, ConfigurationValue> configurationValues )
         {
-            return base.ValueAsFieldType( value, configurationValues );
+            return value;
         }
 
+        /// <inheritdoc/>
         public sealed override Expression PropertyFilterExpression( Dictionary<string, ConfigurationValue> configurationValues, List<string> filterValues, Expression parameterExpression, string propertyName, Type propertyType )
         {
             return base.PropertyFilterExpression( configurationValues, filterValues, parameterExpression, propertyName, propertyType );
@@ -430,57 +438,72 @@ namespace Rock.Field.Types
 
         #region WebForms - Filter Controls
 
-        public sealed override void SetFilterCompareValue( Control control, string value )
-        {
-            base.SetFilterCompareValue( control, value );
-        }
-
+        /// <inheritdoc/>
         public sealed override void SetFilterValues( Control filterControl, Dictionary<string, ConfigurationValue> configurationValues, List<string> filterValues )
         {
             base.SetFilterValues( filterControl, configurationValues, filterValues );
         }
 
-        public sealed override void SetFilterValueValue( Control control, Dictionary<string, ConfigurationValue> configurationValues, string value )
+        /// <inheritdoc/>
+        public sealed override void SetFilterCompareValue( Control control, string value )
         {
-            base.SetFilterValueValue( control, configurationValues, value );
+            if ( SelectionMode == ValuePickerSelectionMode.Multiple )
+            {
+                base.SetFilterCompareValue( control, value );
+            }
         }
 
-        public sealed override string GetFilterCompareValue( Control control, FilterMode filterMode )
+        /// <inheritdoc/>
+        public override string GetFilterCompareValue( Control control, FilterMode filterMode )
         {
+            if ( control is Label )
+            {
+                return null;
+            }
+
             return base.GetFilterCompareValue( control, filterMode );
         }
 
+        /// <inheritdoc/>
         public sealed override List<string> GetFilterValues( Control filterControl, Dictionary<string, ConfigurationValue> configurationValues, FilterMode filterMode )
         {
             return base.GetFilterValues( filterControl, configurationValues, filterMode );
         }
 
-        public sealed override string GetFilterValueValue( Control control, Dictionary<string, ConfigurationValue> configurationValues )
-        {
-            return base.GetFilterValueValue( control, configurationValues );
-        }
-
+        /// <inheritdoc/>
         public sealed override Control FilterControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required )
         {
             return base.FilterControl( configurationValues, id, required );
         }
 
+        /// <inheritdoc/>
         public sealed override Control FilterControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
         {
             return base.FilterControl( configurationValues, id, required, filterMode );
         }
 
-        public sealed override Control FilterValueControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
+        /// <inheritdoc/>
+        public override Control FilterCompareControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
         {
-            return base.FilterValueControl( configurationValues, id, required, filterMode );
-        }
+            if ( SelectionMode == ValuePickerSelectionMode.Single )
+            {
+                var lbl = new Label
+                {
+                    ID = string.Format( "{0}_lIs", id ),
+                    Text = "Is",
+                    Visible = filterMode != FilterMode.SimpleFilter
+                };
 
-        public sealed override Control FilterCompareControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
-        {
+                lbl.AddCssClass( "data-view-filter-label" );
+
+                return lbl;
+            }
+
             return base.FilterCompareControl( configurationValues, id, required, filterMode );
         }
 
         #endregion
+
 #endif
     }
 
@@ -499,38 +522,52 @@ namespace Rock.Field.Types
 
         #region Protected Methods
 
-        protected virtual ValuePickerSelectionMode GetSelectionMode( Dictionary<string, string> privateConfigurationValues )
-        {
-            return ValuePickerSelectionMode.Single;
-        }
-
+        /// <summary>
+        /// Gets the number of columns to use when displaying the values in list
+        /// display mode.
+        /// </summary>
+        /// <param name="privateConfigurationValues">The configuration values that describe the field type.</param>
+        /// <returns>An integer that contains the number of columns to use or <c>null</c> to use the default.</returns>
         protected virtual int? GetColumnCount( Dictionary<string, string> privateConfigurationValues )
         {
             return null;
         }
 
+        /// <summary>
+        /// Gets the display mode to use when rendering the edit control.
+        /// </summary>
+        /// <param name="privateConfigurationValues">The configuration values that describe the field type.</param>
+        /// <returns>The mode to display the edit control in.</returns>
         protected virtual ItemValuePickerDisplayMode GetDisplayMode( Dictionary<string, string> privateConfigurationValues )
         {
             return ItemValuePickerDisplayMode.Auto;
         }
 
+        /// <summary>
+        /// Gets a value that indicates if the edit control should be rendered
+        /// with enhanced selection mode. This provides search capabilities to
+        /// the list of items in condensed display mode.
+        /// </summary>
+        /// <param name="privateConfigurationValues">The configuration values that describe the field type.</param>
+        /// <returns><c>true</c> if the list of items should provide search capabilities; otherwise <c>false</c>.</returns>
         protected virtual bool GetEnhanceForLongLists( Dictionary<string, string> privateConfigurationValues )
         {
             return false;
         }
 
+        /// <summary>
+        /// Gets the list of items to be displayed in the picker.
+        /// </summary>
+        /// <param name="privateConfigurationValues">The configuration values that describe the field type.</param>
+        /// <returns>A list of item bags that will be rendered in the picker.</returns>
         protected virtual List<ListItemBag> GetListItems( Dictionary<string, string> privateConfigurationValues )
         {
             return new List<ListItemBag>();
         }
 
-        protected virtual string GetListItemsSourceUrl( Dictionary<string, string> privateConfigurationValues )
-        {
-            return null;
-        }
-
         #endregion
 
+        /// <inheritdoc/>
         public abstract override string GetTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues );
 
 #if WEBFORMS
@@ -546,11 +583,11 @@ namespace Rock.Field.Types
             }
             else if ( control is RockListBox rlb )
             {
-                rlb.SetValues( value.Split( new[] { ',' }, StringSplitOptions.RemoveEmptyEntries ) );
+                rlb.SetValues( GetValueAsList( value ) );
             }
             else if ( control is RockCheckBoxList cbl )
             {
-                cbl.SetValues( value.Split( new[] { ',' }, StringSplitOptions.RemoveEmptyEntries ) );
+                cbl.SetValues( GetValueAsList( value ) );
             }
             else if ( control is RockRadioButtonList rbl )
             {
@@ -585,80 +622,164 @@ namespace Rock.Field.Types
         public sealed override Control EditControl( Dictionary<string, ConfigurationValue> configurationValues, string id )
         {
             var privateConfigurationValues = configurationValues.ToDictionary( k => k.Key, v => v.Value.Value );
-            var selectionMode = GetSelectionMode( privateConfigurationValues );
             var displayMode = GetDisplayMode( privateConfigurationValues );
-            var columnCount = GetColumnCount( privateConfigurationValues ) ?? 4;
 
             if ( displayMode == ItemValuePickerDisplayMode.List )
             {
-                if ( selectionMode == ValuePickerSelectionMode.Multiple )
-                {
-                    var cbl = new RockCheckBoxList
-                    {
-                        ID = id,
-                        RepeatDirection = RepeatDirection.Horizontal,
-                        RepeatColumns = columnCount
-                    };
-
-                    foreach ( var item in GetListItems( privateConfigurationValues ) )
-                    {
-                        cbl.Items.Add( new ListItem( item.Text, item.Value ) );
-                    }
-
-                    return cbl;
-                }
-                else
-                {
-                    var rbl = new RockRadioButtonList
-                    {
-                        ID = id,
-                        RepeatDirection = RepeatDirection.Horizontal,
-                        RepeatColumns = columnCount
-                    };
-
-                    foreach ( var item in GetListItems( privateConfigurationValues ) )
-                    {
-                        rbl.Items.Add( new ListItem( item.Text, item.Value ) );
-                    }
-
-                    return rbl;
-                }
+                return SelectionMode == ValuePickerSelectionMode.Single
+                    ? GetSingleSelectionListEditControl( privateConfigurationValues, id )
+                    : GetMultipleSelectionListEditControl( privateConfigurationValues, id );
             }
             else
             {
-                if ( selectionMode == ValuePickerSelectionMode.Multiple )
+                return SelectionMode == ValuePickerSelectionMode.Single
+                    ? GetSingleSelectionCondensedEditControl( privateConfigurationValues, id )
+                    : GetMultipleSelectionCondensedEditControl( privateConfigurationValues, id );
+            }
+        }
+
+        private Control GetMultipleSelectionListEditControl( Dictionary<string, string> privateConfigurationValues, string id )
+        {
+            var columnCount = GetColumnCount( privateConfigurationValues ) ?? 4;
+
+            var cbl = new RockCheckBoxList
+            {
+                ID = id,
+                RepeatDirection = RepeatDirection.Horizontal,
+                RepeatColumns = columnCount
+            };
+
+            foreach ( var item in GetListItems( privateConfigurationValues ) )
+            {
+                cbl.Items.Add( new ListItem( item.Text, item.Value ) );
+            }
+
+            return cbl;
+        }
+
+        private Control GetSingleSelectionListEditControl( Dictionary<string, string> privateConfigurationValues, string id )
+        {
+            var columnCount = GetColumnCount( privateConfigurationValues ) ?? 4;
+
+            var rbl = new RockRadioButtonList
+            {
+                ID = id,
+                RepeatDirection = RepeatDirection.Horizontal,
+                RepeatColumns = columnCount
+            };
+
+            foreach ( var item in GetListItems( privateConfigurationValues ) )
+            {
+                rbl.Items.Add( new ListItem( item.Text, item.Value ) );
+            }
+
+            return rbl;
+        }
+
+        private Control GetMultipleSelectionCondensedEditControl( Dictionary<string, string> privateConfigurationValues, string id )
+        {
+            var rlb = new RockListBox
+            {
+                ID = id,
+                DisplayDropAsAbsolute = true
+            };
+
+            foreach ( var item in GetListItems( privateConfigurationValues ) )
+            {
+                rlb.Items.Add( new ListItem( item.Text, item.Value ) );
+            }
+
+            return rlb;
+        }
+
+        private Control GetSingleSelectionCondensedEditControl( Dictionary<string, string> privateConfigurationValues, string id )
+        {
+            var ddl = new RockDropDownList
+            {
+                ID = id,
+                DisplayEnhancedAsAbsolute = true,
+                EnhanceForLongLists = GetEnhanceForLongLists( privateConfigurationValues )
+            };
+
+            ddl.Items.Add( new ListItem() );
+            foreach ( var item in GetListItems( privateConfigurationValues ) )
+            {
+                ddl.Items.Add( new ListItem( item.Text, item.Value ) );
+            }
+
+            return ddl;
+        }
+
+        #endregion
+
+        #region WebForms - Filter Controls
+
+        /// <inheritdoc/>
+        public sealed override Control FilterValueControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
+        {
+            var privateConfigurationValues = configurationValues.ToDictionary( k => k.Key, v => v.Value.Value );
+            id = $"{id ?? string.Empty}_ctlCompareValue";
+
+            var control = SelectionMode == ValuePickerSelectionMode.Single
+                ? GetMultipleSelectionListEditControl( privateConfigurationValues, id )
+                : GetSingleSelectionCondensedEditControl( privateConfigurationValues, id );
+
+            if ( control is WebControl webControl )
+            {
+                webControl.AddCssClass( "js-filter-control" );
+            }
+
+            return control;
+        }
+
+        /// <inheritdoc/>
+        public sealed override string GetFilterValueValue( Control control, Dictionary<string, ConfigurationValue> configurationValues )
+        {
+            if ( control is RockDropDownList ddl )
+            {
+                return ddl.SelectedValue;
+            }
+            else if ( control is RockCheckBoxList cbl )
+            {
+                return cbl.SelectedValues.JoinStrings( "," );
+            }
+
+            return string.Empty;
+        }
+
+        /// <inheritdoc/>
+        public sealed override void SetFilterValueValue( Control control, Dictionary<string, ConfigurationValue> configurationValues, string value )
+        {
+            if ( control is RockDropDownList ddl )
+            {
+                ddl.SetValue( value );
+            }
+            else if ( control is RockCheckBoxList cbl )
+            {
+                cbl.SetValues( GetValueAsList( value ) );
+            }
+        }
+
+        /// <inheritdoc/>
+        public sealed override string FormatFilterValueValue( Dictionary<string, ConfigurationValue> configurationValues, string value )
+        {
+            var privateConfigurationValues = configurationValues.ToDictionary( k => k.Key, v => v.Value.Value );
+            var items = GetListItems( privateConfigurationValues );
+            var textValues = new List<string>();
+
+            var values = GetValueAsList( value );
+
+            foreach ( string key in values )
+            {
+                var item = items.FirstOrDefault( i => i.Value == key );
+
+                if ( item != null )
                 {
-                    var rlb = new RockListBox
-                    {
-                        ID = id,
-                        DisplayDropAsAbsolute = true
-                    };
-
-                    foreach ( var item in GetListItems( privateConfigurationValues ) )
-                    {
-                        rlb.Items.Add( new ListItem( item.Text, item.Value ) );
-                    }
-
-                    return rlb;
-                }
-                else
-                {
-                    var ddl = new RockDropDownList
-                    {
-                        ID = id,
-                        DisplayEnhancedAsAbsolute = true,
-                        EnhanceForLongLists = GetEnhanceForLongLists( privateConfigurationValues )
-                    };
-
-                    ddl.Items.Add( new ListItem() );
-                    foreach ( var item in GetListItems( privateConfigurationValues ) )
-                    {
-                        ddl.Items.Add( new ListItem( item.Text, item.Value ) );
-                    }
-
-                    return ddl;
+                    textValues.Add( item.Text );
                 }
             }
+
+            return AddQuotes( textValues.ToList().AsDelimited( "' OR '" ) );
         }
 
         #endregion
@@ -672,34 +793,48 @@ namespace Rock.Field.Types
         DefaultIntegerValue = 5,
         Order = 0,
         Key = "ValueCount" )]
-    [BooleanField( "Multiple", Key = "Multiple", Order = 1 )]
-    [BooleanField( "As List", Key = "AsList", Order = 2 )]
-    [IntegerField( "Column Count", Key = "ColumnCount", IsRequired = false, Order = 3 )]
-    [BooleanField( "LongList", Key = "LongList", Order = 4 )]
+    [BooleanField( "As List", Key = "AsList", Order = 1 )]
+    [IntegerField( "Column Count", Key = "ColumnCount", IsRequired = false, Order = 2 )]
+    [BooleanField( "LongList", Key = "LongList", Order = 3 )]
     [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
     [Rock.SystemGuid.FieldTypeGuid( "47622385-3fd7-4344-80f4-0e51890d8489" )]
     public class DanielTestFieldType : ItemListPickerFieldType
     {
+        /// <inheritdoc/>
+        protected override ValuePickerSelectionMode SelectionMode => ValuePickerSelectionMode.Single;
+
+        /// <inheritdoc/>
+        public override string GetTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            if ( privateValue.IsNullOrWhiteSpace() )
+            {
+                return string.Empty;
+            }
+
+            var intValues = GetValueAsList( privateValue ).AsIntegerList();
+
+            return intValues.Select( value => $"Item {value}" ).JoinStrings( ", " );
+        }
+
+        /// <inheritdoc/>
         protected override int? GetColumnCount( Dictionary<string, string> privateConfigurationValues )
         {
             return privateConfigurationValues.GetValueOrNull( "ColumnCount" ).AsIntegerOrNull();
         }
 
+        /// <inheritdoc/>
         protected override ItemValuePickerDisplayMode GetDisplayMode( Dictionary<string, string> privateConfigurationValues )
         {
             return privateConfigurationValues.GetValueOrNull( "AsList" ).AsBoolean() ? ItemValuePickerDisplayMode.List : ItemValuePickerDisplayMode.Condensed;
         }
 
-        protected override ValuePickerSelectionMode GetSelectionMode( Dictionary<string, string> privateConfigurationValues )
-        {
-            return privateConfigurationValues.GetValueOrNull( "Multiple" ).AsBoolean() ? ValuePickerSelectionMode.Multiple : ValuePickerSelectionMode.Single;
-        }
-
+        /// <inheritdoc/>
         protected override bool GetEnhanceForLongLists( Dictionary<string, string> privateConfigurationValues )
         {
             return privateConfigurationValues.GetValueOrNull( "LongList" ).AsBoolean();
         }
 
+        /// <inheritdoc/>
         protected override List<ListItemBag> GetListItems( Dictionary<string, string> privateConfigurationValues )
         {
             var count = privateConfigurationValues.GetValueOrNull( "ValueCount" ).AsIntegerOrNull() ?? 4;
@@ -713,6 +848,79 @@ namespace Rock.Field.Types
             return items;
         }
 
+        /// <inheritdoc/>
+        protected override List<string> GetAutoUpdatingConfigurationKeys()
+        {
+            return new List<string>
+            {
+                "ValueCount",
+                "ColumnCount"
+            };
+        }
+    }
+
+    [IntegerField( "Value Count",
+        Description = "The number of values this field has.",
+        IsRequired = true,
+        DefaultIntegerValue = 5,
+        Order = 0,
+        Key = "ValueCount" )]
+    [BooleanField( "As List", Key = "AsList", Order = 1 )]
+    [IntegerField( "Column Count", Key = "ColumnCount", IsRequired = false, Order = 2 )]
+    [BooleanField( "LongList", Key = "LongList", Order = 3 )]
+    [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
+    [Rock.SystemGuid.FieldTypeGuid( "5ec8c7f9-a2d4-4760-a272-9fbe259e45b9" )]
+    public class DanielMultiTestFieldType : ItemListPickerFieldType
+    {
+        /// <inheritdoc/>
+        protected override ValuePickerSelectionMode SelectionMode => ValuePickerSelectionMode.Multiple;
+
+        /// <inheritdoc/>
+        public override string GetTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            if ( privateValue.IsNullOrWhiteSpace() )
+            {
+                return string.Empty;
+            }
+
+            var intValues = GetValueAsList( privateValue ).AsIntegerList();
+
+            return intValues.Select( value => $"Item {value}" ).JoinStrings( ", " );
+        }
+
+        /// <inheritdoc/>
+        protected override int? GetColumnCount( Dictionary<string, string> privateConfigurationValues )
+        {
+            return privateConfigurationValues.GetValueOrNull( "ColumnCount" ).AsIntegerOrNull();
+        }
+
+        /// <inheritdoc/>
+        protected override ItemValuePickerDisplayMode GetDisplayMode( Dictionary<string, string> privateConfigurationValues )
+        {
+            return privateConfigurationValues.GetValueOrNull( "AsList" ).AsBoolean() ? ItemValuePickerDisplayMode.List : ItemValuePickerDisplayMode.Condensed;
+        }
+
+        /// <inheritdoc/>
+        protected override bool GetEnhanceForLongLists( Dictionary<string, string> privateConfigurationValues )
+        {
+            return privateConfigurationValues.GetValueOrNull( "LongList" ).AsBoolean();
+        }
+
+        /// <inheritdoc/>
+        protected override List<ListItemBag> GetListItems( Dictionary<string, string> privateConfigurationValues )
+        {
+            var count = privateConfigurationValues.GetValueOrNull( "ValueCount" ).AsIntegerOrNull() ?? 4;
+            var items = new List<ListItemBag>();
+
+            for ( int i = 0; i < count; i++ )
+            {
+                items.Add( new ListItemBag { Text = $"Item {i + 1}", Value = ( i + 1 ).ToString() } );
+            }
+
+            return items;
+        }
+
+        /// <inheritdoc/>
         protected override List<string> GetAutoUpdatingConfigurationKeys()
         {
             return new List<string>
