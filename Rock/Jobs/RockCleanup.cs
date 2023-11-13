@@ -3188,8 +3188,14 @@ END
         /// <remarks>
         /// This class should be extended to include all of the execution parameters of the Rock Cleanup job.
         /// </remarks>
-        internal class RockCleanupActionArgs
+        [RockInternal( "1.17", true )]
+        public class RockCleanupActionArgs
         {
+            public static RockCleanupActionArgs NewDefault()
+            {
+                return new RockCleanupActionArgs();
+            }
+
             /// <summary>
             /// The number of records to process for each iteration of a batch operation.
             /// </summary>

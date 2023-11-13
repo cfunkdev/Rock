@@ -215,6 +215,7 @@
     <Compile Include="Modules\Reporting\DataFilter\Person\LocationDataFilterTests.cs" />
     <Compile Include="Modules\Web\Controls\AddressControlTests.cs" />
     <Compile Include="TestData\Communications\TestDataHelper.Communications.cs" />
+    <Compile Include="TestData\Core\JobsDataManager.cs" />
     <Compile Include="TestData\Core\SecurityDataManager.cs" />
     <Compile Include="TestData\Core\TestDataHelper.Organization.cs" />
     <Compile Include="TestData\Core\TestDataHelper.Core.cs" />

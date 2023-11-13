@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Generic;
 using Rock.Model;
+using Rock.Tests.Integration.TestData.Core;
 using Rock.Tests.Shared;
 using Rock.Utility;
 using Rock.Web;
@@ -69,6 +70,17 @@ namespace Rock.Tests.Integration.Database
             // including the Rock.Bus.Transport.InMemory Type that is required to start the Rock Message Bus.
             EntityTypeService.RegisterEntityTypes();
 
+            var jobsManager = JobsDataManager.Instance;
+            bool jobSuccess;
+
+            // Populate required support data tables.
+            jobSuccess = jobsManager.RunJobPostInstallDataMigrations();
+
+            if ( !jobSuccess )
+            {
+                throw new Exception( "Required support data tables could not be populated." );
+            }
+
             var factory = new SampleDataManager();
             var args = new SampleDataManager.SampleDataImportActionArgs
             {
@@ -82,25 +94,9 @@ namespace Rock.Tests.Integration.Database
             // Run Rock Jobs to ensure calculated fields are updated.
             //
 
-            // Rock Cleanup
-            var jobCleanup = new Rock.Jobs.RockCleanup();
-
-            ExecuteRockJob( "RockCleanup", () => { jobCleanup.ExecuteInternal( new Dictionary<string, string>() ); } );
-
-            // Calculate Family Analytics
-            var jobFamilyAnalytics = new Rock.Jobs.CalculateFamilyAnalytics();
-
-            ExecuteRockJob( "CalculateFamilyAnalytics", () => { jobFamilyAnalytics.ExecuteInternal( new Dictionary<string, string>() ); } );
-
-            // Process BI Analytics
-            var jobBIAnalytics = new Rock.Jobs.ProcessBIAnalytics();
-
-            var biAnalyticsSettings = new Dictionary<string, string>();
-            biAnalyticsSettings.AddOrReplace( Rock.Jobs.ProcessBIAnalytics.AttributeKey.ProcessPersonBIAnalytics, "true" );
-            biAnalyticsSettings.AddOrReplace( Rock.Jobs.ProcessBIAnalytics.AttributeKey.ProcessFamilyBIAnalytics, "true" );
-            biAnalyticsSettings.AddOrReplace( Rock.Jobs.ProcessBIAnalytics.AttributeKey.ProcessAttendanceBIAnalytics, "true" );
-
-            ExecuteRockJob( "ProcessBiAnalytics", () => { jobBIAnalytics.ExecuteInternal( biAnalyticsSettings ); } );
+            jobsManager.RunJobRockCleanup();
+            jobsManager.RunJobCalculateFamilyAnalytics();
+            jobsManager.RunJobProcessBiAnalytics();
 
             // Calculate Attribute "ValueAs..." columns.
             var jobUpdateAttributeValueAs = new Rock.Jobs.PostV141UpdateValueAsColumns();
@@ -113,20 +109,6 @@ namespace Rock.Tests.Integration.Database
             TestHelper.Log( $"Sample Data loaded." );
 
             return true;
-        }
-
-        private static void ExecuteRockJob( string jobName, Action action )
-        {
-            try
-            {
-                TestHelper.Log( $"Job Started: {jobName}..." );
-                action();
-                TestHelper.Log( $"Job Completed: {jobName}..." );
-            }
-            catch ( Exception ex )
-            {
-                TestHelper.Log( $"WARNING: Job failed. [Job={jobName}]\n{ex.ToString()}" );
-            }
         }
     }
 }
