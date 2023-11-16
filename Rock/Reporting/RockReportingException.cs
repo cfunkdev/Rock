@@ -26,7 +26,7 @@ namespace Rock.Reporting
     /// <seealso cref="System.Exception" />
     public sealed class RockDataViewFilterExpressionException : RockReportingException
     {
-        private DataViewFilter _dataViewFilter;
+        private IDataViewFilterDefinition _dataViewFilter;
         private readonly string _message;
 
         /// <summary>
@@ -34,7 +34,21 @@ namespace Rock.Reporting
         /// Use this if this DataFilter wasn't known at the time the exception was raised.
         /// </summary>
         /// <param name="dataViewFilter">The data view filter.</param>
+        /// <remarks>
+        /// This property should be marked as Obsolete.
+        /// Use SetDataFilterIfNotSet( IDataViewFilterDefinition dataViewFilter ) instead.
+        /// </remarks>
         public void SetDataFilterIfNotSet( DataViewFilter dataViewFilter )
+        {
+            SetDataFilterIfNotSet( dataViewFilter as IDataViewFilterDefinition );
+        }
+
+        /// <summary>
+        /// Sets the data filter, unless it has been set already
+        /// Use this if this DataFilter wasn't known at the time the exception was raised.
+        /// </summary>
+        /// <param name="dataViewFilter">The data view filter.</param>
+        public void SetDataFilterIfNotSet( IDataViewFilterDefinition dataViewFilter )
         {
             if ( _dataViewFilter != null )
             {
@@ -45,7 +59,10 @@ namespace Rock.Reporting
             {
                 if ( dataViewFilter?.DataViewId != null )
                 {
-                    DataView = dataViewFilter.DataView;
+                    DataViewName = dataViewFilter.DataView?.Name;
+                    DataViewId = dataViewFilter.DataViewId;
+
+                    DataView = dataViewFilter.DataView as DataView;
                 }
             }
             catch
@@ -90,12 +107,55 @@ namespace Rock.Reporting
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="RockDataViewFilterExpressionException"/> class.
+        /// </summary>
+        /// <param name="dataViewFilter">The data view filter.</param>
+        /// <param name="message">The message.</param>
+        /// <param name="innerException">The inner exception.</param>
+        public RockDataViewFilterExpressionException( IDataViewFilterDefinition dataViewFilter, string message, Exception innerException )
+            : base( message, innerException )
+        {
+            SetDataFilterIfNotSet( dataViewFilter );
+            _message = message;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RockDataViewFilterExpressionException" /> class.
+        /// </summary>
+        /// <param name="dataViewFilter">The data view filter.</param>
+        /// <param name="message">The message.</param>
+        public RockDataViewFilterExpressionException( IDataViewFilterDefinition dataViewFilter, string message )
+            : this( dataViewFilter, message, null )
+        {
+        }
+
+        /// <summary>
         /// Gets the DataView that produced the error
         /// </summary>
         /// <value>
         /// The data view identifier.
         /// </value>
+        /// <remarks>
+        /// This property should be marked as Obsolete.
+        /// Use the DataViewId and DataViewName properties instead.
+        /// </remarks>
         public DataView DataView { get; private set; }
+
+        /// <summary>
+        /// Gets the identifier of the DataView that produced the error.
+        /// </summary>
+        /// <value>
+        /// The data view identifier.
+        /// </value>
+        public int? DataViewId { get; private set; }
+
+        /// <summary>
+        /// Gets the name of the DataView that produced the error.
+        /// </summary>
+        /// <value>
+        /// The data view name.
+        /// </value>
+        public string DataViewName { get; private set; }
 
         /// <summary>
         /// Gets the friendly message for the caller DataView.
@@ -106,6 +166,19 @@ namespace Rock.Reporting
         /// The friendly message.
         /// </value>
         public string GetFriendlyMessage( DataView callerDataView )
+        {
+            return GetFriendlyMessage( callerDataView as IDataViewDefinition );
+        }
+
+        /// <summary>
+        /// Gets the friendly message for the caller DataView.
+        /// </summary>
+        /// <param name="callerDataView">The caller data view.</param>
+        /// <returns></returns>
+        /// <value>
+        /// The friendly message.
+        /// </value>
+        public string GetFriendlyMessage( IDataViewDefinition callerDataView )
         {
             if ( _dataViewFilter != null && _dataViewFilter.EntityTypeId.HasValue )
             {

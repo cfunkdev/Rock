@@ -189,14 +189,8 @@ namespace RockWeb.Blocks.Reporting
                 return;
             }
 
-            // In order to determine the desired context, we need to do a lookup of the dataview itself.
-            DataView dataViewForContext = new DataViewService( new RockContext() ).Get( dataViewId.Value );
-            if ( dataViewForContext == null )
-            {
-                return;
-            }
+            var dataView = DataViewQueryBuilder.Instance.GetDataViewDefinition( dataViewId.Value );
 
-            var dataView = new DataViewService( dataViewForContext.GetDbContext() as RockContext ).Get( dataViewId.Value );
             if ( dataView == null )
             {
                 return;
@@ -248,7 +242,8 @@ namespace RockWeb.Blocks.Reporting
                 return;
             }
 
-            if ( !dataView.IsAuthorized( Authorization.VIEW, CurrentPerson ) )
+            var isAuthorized = DataViewQueryBuilder.Instance.IsUserAuthorizedToViewResults( dataView, CurrentPerson );
+            if ( !isAuthorized )
             {
                 return;
             }
@@ -279,7 +274,7 @@ namespace RockWeb.Blocks.Reporting
             try
             {
                 gDataViewResults.CreatePreviewColumns( dataViewEntityTypeType );
-                var dataViewGetQueryArgs = new DataViewGetQueryArgs
+                var dataViewGetQueryArgs = new DataViewQueryBuilder.GetEntityQueryArgs
                 {
                     SortProperty = gDataViewResults.SortProperty,
                     DatabaseTimeoutSeconds = GetAttributeValue( AttributeKey.DatabaseTimeoutSeconds ).AsIntegerOrNull() ?? 180,
@@ -289,7 +284,7 @@ namespace RockWeb.Blocks.Reporting
                     }
                 };
 
-                var qry = dataView.GetQuery( dataViewGetQueryArgs );
+                var qry = DataViewQueryBuilder.Instance.GetDataViewQuery( dataView, dataViewGetQueryArgs );
 
                 gDataViewResults.SetLinqDataSource( qry.AsNoTracking() );
                 gDataViewResults.DataBind();

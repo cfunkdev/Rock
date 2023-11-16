@@ -89,6 +89,8 @@ namespace Rock.Model
         /// Gets the query.
         /// </summary>
         /// <returns></returns>
+        [RockObsolete( "1.17" )]
+        [Obsolete( "Use DataViewQueryBuilder.GetDataViewQuery() instead." )]
         public IQueryable<IEntity> GetQuery()
         {
             return GetQuery( null );
@@ -106,6 +108,8 @@ namespace Rock.Model
         /// or
         /// Unable to determine IService.Get for {this}
         /// </exception>
+        [RockObsolete( "1.17" )]
+        [Obsolete( "Use DataViewQueryBuilder.GetDataViewQuery() instead." )]
         public IQueryable<IEntity> GetQuery( DataViewGetQueryArgs dataViewGetQueryArgs )
         {
             dataViewGetQueryArgs = dataViewGetQueryArgs ?? new DataViewGetQueryArgs();

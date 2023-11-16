@@ -335,9 +335,14 @@ namespace Rock.Web.Cache
         internal static IEnumerable<T> GetMany( ICollection<int> ids, RockContext rockContext = null )
         {
             var cachedItems = new List<T>();
-            var idsToLoad = new List<int>();
+
+            if ( ids == null )
+            {
+                return cachedItems;
+            }
 
             // Try to get items that already exist in cache.
+            var idsToLoad = new List<int>();
             foreach ( var id in ids )
             {
                 if ( TryGet( id, out var cachedItem ) )

@@ -16,6 +16,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
@@ -357,5 +358,51 @@ namespace Rock.Model
 
             return component.GetExpression( service, parameterExpression, whereExpression );
         }
+
+        #region ICacheable
+
+        /// <inheritdoc cref = "Rock.Web.Cache.ICacheable.GetCacheObject" />
+        public IEntityCache GetCacheObject()
+        {
+            return DataViewCache.Get( this.Id );
+        }
+
+        /// <inheritdoc cref = "Rock.Web.Cache.ICacheable.UpdateCache" />
+        public void UpdateCache( EntityState entityState, Rock.Data.DbContext dbContext )
+        {
+            var dataView = DataViewCache.Get( this.Id, ( RockContext ) dbContext );
+
+            UpdateFilterCache( dataView?.DataViewFilter );
+
+            DataViewCache.UpdateCachedEntity( this.Id, entityState );
+        }
+
+        /// <summary>
+        /// Update the cached filter tree associated with this Data View.
+        /// </summary>
+        /// <param name="parentFilter"></param>
+        private void UpdateFilterCache( DataViewFilterCache parentFilter )
+        {
+            if ( parentFilter == null )
+            {
+                return;
+            }
+
+            DataViewFilterCache.UpdateCachedEntity( parentFilter.Id, EntityState.Detached );
+            if ( parentFilter.ChildFilters != null )
+            {
+                foreach ( var cachedDataFilter in parentFilter.ChildFilters )
+                {
+                    DataViewFilterCache.UpdateCachedEntity( cachedDataFilter.Id, EntityState.Detached );
+
+                    if ( cachedDataFilter.ChildFilters != null )
+                    {
+                        UpdateFilterCache( cachedDataFilter );
+                    }
+                }
+            }
+        }
+
+        #endregion
     }
 }

@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Data.Entity;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.Serialization;
@@ -445,6 +446,23 @@ namespace Rock.Model
             {
                 return this.ExpressionType.ConvertToString();
             }
+        }
+
+        #endregion
+
+        #region ICacheable
+
+        /// <inheritdoc cref = "Rock.Web.Cache.ICacheable.GetCacheObject" />
+        public IEntityCache GetCacheObject()
+        {
+            return DataViewFilterCache.Get( this.Id );
+        }
+
+        /// <inheritdoc cref = "Rock.Web.Cache.ICacheable.UpdateCache" />
+        public void UpdateCache( EntityState entityState, Rock.Data.DbContext dbContext )
+        {
+            DataViewFilterCache.UpdateCachedEntity( this.Id, entityState );
+            DataViewCache.FlushItem( this.DataViewId.GetValueOrDefault() );
         }
 
         #endregion

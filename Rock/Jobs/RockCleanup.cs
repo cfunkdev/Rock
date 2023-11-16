@@ -3191,6 +3191,10 @@ END
         [RockInternal( "1.17", true )]
         public class RockCleanupActionArgs
         {
+            /// <summary>
+            /// Creates a default set of arguments for the action.
+            /// </summary>
+            /// <returns></returns>
             public static RockCleanupActionArgs NewDefault()
             {
                 return new RockCleanupActionArgs();
