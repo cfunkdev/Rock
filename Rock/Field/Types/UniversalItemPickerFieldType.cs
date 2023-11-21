@@ -31,12 +31,32 @@ namespace Rock.Field.Types
     /// be picked by the person.
     /// </summary>
     [ClientFieldTypeGuid( "b69b5a61-6fcd-4e3b-bb45-5f6802514953" )]
-    public abstract class ItemListPickerFieldType : StandardItemFieldType
+    public abstract class UniversalItemPickerFieldType : UniversalItemFieldType
     {
         /// <inheritdoc/>
         public sealed override bool HasFilterControl()
         {
             return true;
+        }
+
+        public sealed override Dictionary<string, string> GetPublicConfigurationValues( Dictionary<string, string> privateConfigurationValues, ConfigurationValueUsage usage, string value )
+        {
+            if ( usage == ConfigurationValueUsage.View )
+            {
+                return new Dictionary<string, string>();
+            }
+            else if ( usage == ConfigurationValueUsage.Edit )
+            {
+                return new Dictionary<string, string>
+                {
+                    ["columnCount"] = GetColumnCount( privateConfigurationValues ).ToStringSafe(),
+                    ["displayStyle"] = GetDisplayStyle( privateConfigurationValues ).ConvertToInt().ToStringSafe(),
+                    ["enhanceForLongLists"] = GetEnhanceForLongLists( privateConfigurationValues ).ToString(),
+                    ["items"] = GetListItems( privateConfigurationValues ).ToCamelCaseJson( false, true )
+                };
+            }
+
+            return base.GetPublicConfigurationValues( privateConfigurationValues, usage, value );
         }
 
         #region Protected Methods
@@ -53,13 +73,13 @@ namespace Rock.Field.Types
         }
 
         /// <summary>
-        /// Gets the display mode to use when rendering the edit control.
+        /// Gets the display style to use when rendering the edit control.
         /// </summary>
         /// <param name="privateConfigurationValues">The configuration values that describe the field type.</param>
-        /// <returns>The mode to display the edit control in.</returns>
-        protected virtual ItemValuePickerDisplayMode GetDisplayMode( Dictionary<string, string> privateConfigurationValues )
+        /// <returns>The style to display the edit control in.</returns>
+        protected virtual ItemValuePickerDisplayStyle GetDisplayStyle( Dictionary<string, string> privateConfigurationValues )
         {
-            return ItemValuePickerDisplayMode.Auto;
+            return ItemValuePickerDisplayStyle.Auto;
         }
 
         /// <summary>
@@ -141,9 +161,9 @@ namespace Rock.Field.Types
         public sealed override Control EditControl( Dictionary<string, ConfigurationValue> configurationValues, string id )
         {
             var privateConfigurationValues = configurationValues.ToDictionary( k => k.Key, v => v.Value.Value );
-            var displayMode = GetDisplayMode( privateConfigurationValues );
+            var displayMode = GetDisplayStyle( privateConfigurationValues );
 
-            if ( displayMode == ItemValuePickerDisplayMode.List )
+            if ( displayMode == ItemValuePickerDisplayStyle.List )
             {
                 return SelectionMode == ValuePickerSelectionMode.Single
                     ? GetSingleSelectionListEditControl( privateConfigurationValues, id )
@@ -338,7 +358,7 @@ namespace Rock.Field.Types
     [BooleanField( "LongList", Key = "LongList", Order = 3 )]
     [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
     [Rock.SystemGuid.FieldTypeGuid( "47622385-3fd7-4344-80f4-0e51890d8489" )]
-    public class DanielTestFieldType : ItemListPickerFieldType
+    public class DanielTestFieldType : UniversalItemPickerFieldType
     {
         /// <inheritdoc/>
         protected override ValuePickerSelectionMode SelectionMode => ValuePickerSelectionMode.Single;
@@ -363,9 +383,9 @@ namespace Rock.Field.Types
         }
 
         /// <inheritdoc/>
-        protected override ItemValuePickerDisplayMode GetDisplayMode( Dictionary<string, string> privateConfigurationValues )
+        protected override ItemValuePickerDisplayStyle GetDisplayStyle( Dictionary<string, string> privateConfigurationValues )
         {
-            return privateConfigurationValues.GetValueOrNull( "AsList" ).AsBoolean() ? ItemValuePickerDisplayMode.List : ItemValuePickerDisplayMode.Condensed;
+            return privateConfigurationValues.GetValueOrNull( "AsList" ).AsBoolean() ? ItemValuePickerDisplayStyle.List : ItemValuePickerDisplayStyle.Condensed;
         }
 
         /// <inheritdoc/>
@@ -410,7 +430,7 @@ namespace Rock.Field.Types
     [BooleanField( "LongList", Key = "LongList", Order = 3 )]
     [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
     [Rock.SystemGuid.FieldTypeGuid( "5ec8c7f9-a2d4-4760-a272-9fbe259e45b9" )]
-    public class DanielMultiTestFieldType : ItemListPickerFieldType
+    public class DanielMultiTestFieldType : UniversalItemPickerFieldType
     {
         /// <inheritdoc/>
         protected override ValuePickerSelectionMode SelectionMode => ValuePickerSelectionMode.Multiple;
@@ -435,9 +455,9 @@ namespace Rock.Field.Types
         }
 
         /// <inheritdoc/>
-        protected override ItemValuePickerDisplayMode GetDisplayMode( Dictionary<string, string> privateConfigurationValues )
+        protected override ItemValuePickerDisplayStyle GetDisplayStyle( Dictionary<string, string> privateConfigurationValues )
         {
-            return privateConfigurationValues.GetValueOrNull( "AsList" ).AsBoolean() ? ItemValuePickerDisplayMode.List : ItemValuePickerDisplayMode.Condensed;
+            return privateConfigurationValues.GetValueOrNull( "AsList" ).AsBoolean() ? ItemValuePickerDisplayStyle.List : ItemValuePickerDisplayStyle.Condensed;
         }
 
         /// <inheritdoc/>
@@ -490,7 +510,7 @@ namespace Rock.Field.Types
     /// <summary>
     /// The way to display the items for the item value pickers.
     /// </summary>
-    public enum ItemValuePickerDisplayMode
+    public enum ItemValuePickerDisplayStyle
     {
         /// <summary>
         /// Let the system decide the best way to display the list of options.

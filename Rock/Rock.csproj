@@ -1001,12 +1001,12 @@
     <Compile Include="Field\ReferencedProperty.cs" />
     <Compile Include="Field\Types\ColorSelectorFieldType.cs" />
     <Compile Include="Field\Types\GroupMemberRequirementFieldType.cs" />
-    <Compile Include="Field\Types\ItemListPickerFieldType.cs" />
+    <Compile Include="Field\Types\UniversalItemPickerFieldType.cs" />
     <Compile Include="Field\Types\MediaSelectorFieldType.cs" />
     <Compile Include="Field\Types\ReminderTypeFieldType.cs" />
     <Compile Include="Field\Types\ReminderTypesFieldType.cs" />
     <Compile Include="Field\Types\SecondaryAuthsFieldType.cs" />
-    <Compile Include="Field\Types\StandardItemFieldType.cs" />
+    <Compile Include="Field\Types\UniversalItemFieldType.cs" />
     <Compile Include="Field\Types\SystemPhoneNumberFieldType.cs" />
     <Compile Include="Financial\ISettlementGateway.cs" />
     <Compile Include="IpAddress\Classes\IpLocation.cs" />

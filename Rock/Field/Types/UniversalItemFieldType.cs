@@ -24,6 +24,7 @@ using System.Web.UI.WebControls;
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Reporting;
+using Rock.ViewModels.Utility;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
 
@@ -33,7 +34,7 @@ namespace Rock.Field.Types
     /// Base logic provider for field types that have shared UI comonents
     /// on the client to handle working with the field values.
     /// </summary>
-    public abstract class StandardItemFieldType : FieldType
+    public abstract class UniversalItemFieldType : FieldType
     {
         #region Properties
 
@@ -176,12 +177,6 @@ namespace Rock.Field.Types
         }
 
         /// <inheritdoc/>
-        public sealed override string GetPublicEditValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
-        {
-            return base.GetPublicEditValue( privateValue, privateConfigurationValues );
-        }
-
-        /// <inheritdoc/>
         public sealed override ComparisonValue GetPublicFilterValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
             return base.GetPublicFilterValue( privateValue, privateConfigurationValues );
@@ -230,15 +225,39 @@ namespace Rock.Field.Types
         }
 
         /// <inheritdoc/>
+        public sealed override string GetPublicEditValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            return new ListItemBag
+            {
+                Value = privateValue,
+                Text = GetTextValue( privateValue, privateConfigurationValues )
+            }.ToCamelCaseJson( false, true );
+        }
+
+        /// <inheritdoc/>
         public sealed override string GetPrivateEditValue( string publicValue, Dictionary<string, string> privateConfigurationValues )
         {
-            return base.GetPrivateEditValue( publicValue, privateConfigurationValues );
+            var singleBag = publicValue.FromJsonOrNull<ListItemBag>();
+
+            if ( singleBag != null )
+            {
+                return singleBag.Value;
+            }
+
+            var multiBag = publicValue.FromJsonOrNull<List<ListItemBag>>();
+
+            if ( multiBag != null )
+            {
+                return multiBag.Select( b => b.Value ).JoinStrings( "," );
+            }
+
+            return string.Empty;
         }
 
         /// <inheritdoc/>
         public sealed override string GetPublicValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
-            return base.GetPublicValue( privateValue, privateConfigurationValues );
+            return GetTextValue( privateValue, privateConfigurationValues );
         }
 
         #endregion
@@ -269,10 +288,22 @@ namespace Rock.Field.Types
             return base.GetPrivateConfigurationValues( publicConfigurationValues );
         }
 
-        public sealed override Dictionary<string, string> GetPublicConfigurationValues( Dictionary<string, string> privateConfigurationValues, ConfigurationValueUsage usage, string value )
-        {
-            return base.GetPublicConfigurationValues( privateConfigurationValues, usage, value );
-        }
+        //public sealed override Dictionary<string, string> GetPublicConfigurationValues( Dictionary<string, string> privateConfigurationValues, ConfigurationValueUsage usage, string value )
+        //{
+        //    if ( usage == ConfigurationValueUsage.View )
+        //    {
+        //        return new Dictionary<string, string>();
+        //    }
+        //    else if ( usage == ConfigurationValueUsage.Edit )
+        //    {
+        //        return new Dictionary<string, string>
+        //        {
+        //            ["ConfigurationValues"] = GetUniversalConfigurationValues( privateConfigurationValues, usage, value ).ToJson()
+        //        };
+        //    }
+
+        //    return base.GetPublicConfigurationValues( privateConfigurationValues, usage, value );
+        //}
 
         public sealed override Dictionary<string, string> GetPublicEditConfigurationProperties( Dictionary<string, string> privateConfigurationValues )
         {

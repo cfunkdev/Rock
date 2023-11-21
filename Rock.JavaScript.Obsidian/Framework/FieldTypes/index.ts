@@ -338,6 +338,9 @@ registerFieldType(FieldTypeGuids.Time, new TimeFieldType());
 import { TimeZoneFieldType } from "./timeZoneField.partial";
 registerFieldType(FieldTypeGuids.TimeZone, new TimeZoneFieldType());
 
+import { UniversalItemPickerFieldType } from "./universalItemPickerField.partial";
+registerFieldType("b69b5a61-6fcd-4e3b-bb45-5f6802514953", new UniversalItemPickerFieldType());
+
 import { UrlLinkFieldType } from "./urlLinkField.partial";
 registerFieldType(FieldTypeGuids.UrlLink, new UrlLinkFieldType());
 
