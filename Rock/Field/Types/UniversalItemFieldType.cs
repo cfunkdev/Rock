@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -305,9 +306,48 @@ namespace Rock.Field.Types
         //    return base.GetPublicConfigurationValues( privateConfigurationValues, usage, value );
         //}
 
+        /// <inheritdoc/>
         public sealed override Dictionary<string, string> GetPublicEditConfigurationProperties( Dictionary<string, string> privateConfigurationValues )
         {
-            return base.GetPublicEditConfigurationProperties( privateConfigurationValues );
+            var fieldTypeAttributes = GetConfigurationAttributes();
+            int order = 0;
+            var attributeBags = new List<PublicAttributeBag>();
+
+            // Build a list of all the field type attributes defined on this
+            // instance. These are transformed into a fake attribute so that
+            // the client can present them with standard logic.
+            foreach ( var fieldTypeAttribute in fieldTypeAttributes )
+            {
+                var fieldTypeCache = FieldTypeCache.All().FirstOrDefault( c => c.Class == fieldTypeAttribute.FieldTypeClass );
+                if ( fieldTypeCache == null || fieldTypeCache.Field == null )
+                {
+                    continue;
+                }
+
+                var clientFieldTypeGuidAttribute = fieldTypeCache.Field.GetType().GetCustomAttribute<ClientFieldTypeGuidAttribute>();
+                var configurationValues = fieldTypeAttribute.FieldConfigurationValues
+                    .ToDictionary( k => k.Key, k => k.Value.Value );
+
+                var bag = new PublicAttributeBag
+                {
+                    FieldTypeGuid = clientFieldTypeGuidAttribute?.Guid ?? fieldTypeCache.Guid,
+                    AttributeGuid = Guid.NewGuid(),
+                    Name = fieldTypeAttribute.Name,
+                    Order = order++,
+                    Key = fieldTypeAttribute.Key,
+                    IsRequired = fieldTypeAttribute.IsRequired,
+                    Description = fieldTypeAttribute.Description,
+                    ConfigurationValues = fieldTypeCache.Field.GetPublicConfigurationValues( configurationValues, ConfigurationValueUsage.Edit, null ),
+                };
+
+                attributeBags.Add( bag );
+            }
+
+            return new Dictionary<string, string>
+            {
+                ["Attributes"] = attributeBags.ToCamelCaseJson( false, true ),
+                ["SideEffectKeys"] = GetVolatileConfigurationKeys()?.ToCamelCaseJson( false, true )
+            };
         }
 
         #endregion

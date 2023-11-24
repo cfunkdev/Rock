@@ -19,22 +19,15 @@ import { ComparisonType } from "@Obsidian/Enums/Reporting/comparisonType";
 import { defineAsyncComponent } from "@Obsidian/Utility/component";
 import { FieldTypeBase } from "./fieldType";
 
-export const enum ConfigurationValueKey {
-    BooleanControlType = "BooleanControlType",
-    FalseText = "falsetext",
-    TrueText = "truetext"
-}
-
-
 // The edit component can be quite large, so load it only as needed.
 const editComponent = defineAsyncComponent(async () => {
     return (await import("./universalItemPickerFieldComponents")).EditComponent;
 });
 
 // The configuration component can be quite large, so load it only as needed.
-// const configurationComponent = defineAsyncComponent(async () => {
-//     return (await import("./universalItemPickerFieldComponents")).ConfigurationComponent;
-// });
+const configurationComponent = defineAsyncComponent(async () => {
+    return (await import("./universalItemFieldComponents")).ConfigurationComponent;
+});
 
 /**
  * The field type handler for the Universal Item Picker field types.
@@ -48,9 +41,9 @@ export class UniversalItemPickerFieldType extends FieldTypeBase {
         return editComponent;
     }
 
-    // public override getConfigurationComponent(): Component {
-    //     return configurationComponent;
-    // }
+    public override getConfigurationComponent(): Component {
+        return configurationComponent;
+    }
 
     public override getSupportedComparisonTypes(): ComparisonType {
         // TODO: This function needs to be updated to take configuration

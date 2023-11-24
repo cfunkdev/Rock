@@ -81,6 +81,7 @@ namespace Rock.Attribute
                 IsShowInGrid = attribute.IsGridColumn,
                 IsShowOnBulk = attribute.ShowOnBulk,
                 FieldTypeGuid = clientFieldTypeGuidAttribute?.Guid ?? fieldTypeCache.Guid,
+                RealFieldTypeGuid = clientFieldTypeGuidAttribute != null ? fieldTypeCache.Guid : ( Guid? )null,
                 Categories = attribute.Categories
                     .Select( c => new ListItemBag
                     {
