@@ -74,10 +74,10 @@ namespace Rock.Field.Types
         /// <inheritdoc />
         public override Dictionary<string, string> GetPublicConfigurationValues( Dictionary<string, string> privateConfigurationValues, ConfigurationValueUsage usage, string value )
         {
+            var configurationValues = base.GetPublicConfigurationValues( privateConfigurationValues, usage, value );
+
             using ( var rockContext = new RockContext() )
             {
-                var configurationValues = base.GetPublicConfigurationValues( privateConfigurationValues, usage, value );
-
                 var contentChannels = new SystemCommunicationService( rockContext ).Queryable()
                     .AsNoTracking()
                     .OrderBy( d => d.Title )
@@ -88,9 +88,9 @@ namespace Rock.Field.Types
                     } ).ToList();
 
                 configurationValues[CLIENT_VALUES] = contentChannels.ToCamelCaseJson( false, true );
-
-                return configurationValues;
             }
+
+            return configurationValues;
         }
 
         /// <inheritdoc />
