@@ -125,7 +125,7 @@ namespace Rock.Field.Types
                 }
 
                 var includeInactive = configurationValues.ContainsKey( INCLUDE_INACTIVE_KEY ) && configurationValues[INCLUDE_INACTIVE_KEY].AsBoolean();
-                var query = new ConnectionActivityTypeService( new RockContext() )
+                var query = new ConnectionActivityTypeService( rockContext )
                     .Queryable()
                     .Where( ca => ca.IsActive || includeInactive )
                     .AsNoTracking();
