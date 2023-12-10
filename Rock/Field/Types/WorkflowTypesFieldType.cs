@@ -25,6 +25,7 @@ using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
 using Rock.Reporting;
+using Rock.ViewModels.Utility;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
 
@@ -34,7 +35,7 @@ namespace Rock.Field.Types
     /// Field Type used to display a workflow type picker with option to select multiple. Stored as a comma-delimited list of WorkflowType Guids
     /// </summary>
     [Serializable]
-    [RockPlatformSupport( Utility.RockPlatform.WebForms )]
+    [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
     [Rock.SystemGuid.FieldTypeGuid( Rock.SystemGuid.FieldType.WORKFLOW_TYPES )]
     public class WorkflowTypesFieldType : FieldType, IEntityReferenceFieldType
     {
@@ -80,6 +81,70 @@ namespace Rock.Field.Types
         #endregion
 
         #region Edit Control
+
+        /// <inheritdoc/>
+        public override string GetPublicValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            var workflowTypes = GetWorkflowTypes( privateValue );
+
+            return workflowTypes.Select( c => c.Name ).JoinStrings( "," );
+        }
+
+        /// <inheritdoc/>
+        public override string GetPrivateEditValue( string publicValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            if ( string.IsNullOrWhiteSpace( publicValue ) )
+            {
+                return string.Empty;
+            }
+
+            var jsonValues = publicValue.FromJsonOrNull<List<ListItemBag>>();
+
+            if ( jsonValues != null )
+            {
+                return jsonValues.ConvertAll( c => c.Value ).AsDelimited( "," );
+            }
+
+            return string.Empty;
+        }
+
+        /// <inheritdoc/>
+        public override string GetPublicEditValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            var workflowTypeCache = GetWorkflowTypes( privateValue ).ConvertAll( c =>
+                new ListItemBag()
+                {
+                    Text = c.Name,
+                    Value = c.Guid.ToString()
+                } );
+
+            return workflowTypeCache.ToCamelCaseJson( false, true );
+        }
+
+        /// <summary>
+        /// Converts the saved private value into workflowTypes
+        /// </summary>
+        /// <param name="privateValue">The private value.</param>
+        /// <returns></returns>
+        private List<WorkflowTypeCache> GetWorkflowTypes( string privateValue )
+        {
+            if ( string.IsNullOrWhiteSpace( privateValue ) )
+            {
+                return new List<WorkflowTypeCache>();
+            }
+
+            var guids = privateValue.SplitDelimitedValues().AsGuidList();
+
+            if ( guids.Count == 0 )
+            {
+                return new List<WorkflowTypeCache>();
+            }
+
+            var workflowTypes = guids.ConvertAll( c => WorkflowTypeCache.Get( c ) )
+                .ToList();
+
+            return workflowTypes;
+        }
 
         #endregion
 
