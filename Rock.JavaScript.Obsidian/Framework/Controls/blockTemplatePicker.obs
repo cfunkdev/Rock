@@ -86,10 +86,8 @@
 
             if (result.data.length > 0) {
                 let item = result.data[0];
-                if (view.value == "SELECT") {
-                    internalValue.value = item.template ?? "";
-                    internalkey.value = item.guid ?? null;
-                }
+                internalValue.value = item.template ?? "";
+                internalkey.value = item.guid ?? null;
             }
         }
         else {
