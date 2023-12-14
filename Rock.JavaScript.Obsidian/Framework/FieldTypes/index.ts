@@ -332,6 +332,9 @@ registerFieldType(FieldTypeGuids.ReminderType, new ReminderTypeFieldType());
 import { ReminderTypesFieldType } from "./reminderTypesField.partial";
 registerFieldType(FieldTypeGuids.ReminderTypes, new ReminderTypesFieldType());
 
+import { RemoteAuthsFieldType } from "./remoteAuthsField.partial";
+registerFieldType(FieldTypeGuids.RemoteAuths, new RemoteAuthsFieldType());
+
 import { ReportFieldType } from "./reportField.partial";
 registerFieldType(FieldTypeGuids.Report, new ReportFieldType());
 
