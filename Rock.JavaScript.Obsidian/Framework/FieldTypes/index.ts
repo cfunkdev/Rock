@@ -197,6 +197,9 @@ registerFieldType(FieldTypeGuids.Entity, new EntityFieldType());
 import { EntityTypeFieldType } from "./entityTypeField.partial";
 registerFieldType(FieldTypeGuids.Entitytype, new EntityTypeFieldType());
 
+import { EventCalendarFieldType } from "./eventCalendarField.partial";
+registerFieldType(FieldTypeGuids.EventCalendar, new EventCalendarFieldType());
+
 import { EventItemFieldType } from "./eventItemField.partial";
 registerFieldType(FieldTypeGuids.EventItem, new EventItemFieldType());
 
