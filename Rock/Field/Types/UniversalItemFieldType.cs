@@ -48,7 +48,7 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override Model.ComparisonType FilterComparisonType
         {
-            get => SelectionMode == ValuePickerSelectionMode.Multiple
+            get => IsMultipleSelection
                 ? ComparisonHelper.ContainsFilterComparisonTypes
                 : ComparisonHelper.BinaryFilterComparisonTypes;
         }
@@ -57,26 +57,17 @@ namespace Rock.Field.Types
         public sealed override bool HasDefaultControl => true;
 
         /// <summary>
-        /// The selection mode of this field type. Field types configured for
-        /// multiple selection will be stored as a comma seperated list of values.
+        /// Gets a value to determine if this field type supports multiple
+        /// selection or only single selection.
         /// </summary>
-        protected virtual ValuePickerSelectionMode SelectionMode => ValuePickerSelectionMode.Single;
+        /// <value>
+        /// <c>true</c> if this field type supports selecting multiple items.
+        /// </value>
+        protected virtual bool IsMultipleSelection => false;
 
         #endregion
 
         #region Protected Methods
-
-        /// <summary>
-        /// Gets the configuration keys that could cause a change to the configuration
-        /// data in a way that requires the configuration values to be updated. For
-        /// example, if the configuration key might change the default value control
-        /// it should be included here.
-        /// </summary>
-        /// <returns>A list of key names.</returns>
-        protected virtual List<string> GetVolatileConfigurationKeys()
-        {
-            return new List<string>();
-        }
 
         /// <summary>
         /// Gets the value as a list of string values. If the field type is
@@ -131,7 +122,7 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override Expression AttributeFilterExpression( Dictionary<string, ConfigurationValue> configurationValues, List<string> filterValues, ParameterExpression parameterExpression )
         {
-            if ( SelectionMode == ValuePickerSelectionMode.Single && filterValues.Count == 1 )
+            if ( !IsMultipleSelection && filterValues.Count == 1 )
             {
                 var selectedValues = GetValueAsList( filterValues[0] );
                 var propertyExpression = Expression.Property( parameterExpression, "Value" );
@@ -165,7 +156,7 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override string GetEqualToCompareValue()
         {
-            if ( SelectionMode == ValuePickerSelectionMode.Single )
+            if ( !IsMultipleSelection )
             {
                 return null;
             }
@@ -393,8 +384,7 @@ namespace Rock.Field.Types
 
             return new Dictionary<string, string>
             {
-                ["Attributes"] = attributeBags.ToCamelCaseJson( false, true ),
-                ["SideEffectKeys"] = GetVolatileConfigurationKeys()?.ToCamelCaseJson( false, true )
+                ["Attributes"] = attributeBags.ToCamelCaseJson( false, true )
             };
         }
 
@@ -434,7 +424,6 @@ namespace Rock.Field.Types
         {
             var controls = new List<Control>();
             var fieldTypeAttributes = GetConfigurationAttributes();
-            var autoUpdateKeys = GetVolatileConfigurationKeys();
 
             for ( int i = 0; i < fieldTypeAttributes.Count; i++ )
             {
@@ -452,10 +441,7 @@ namespace Rock.Field.Types
                         rockControl.Help = fieldTypeAttribute.Description;
                     }
 
-                    if ( autoUpdateKeys?.Contains( fieldTypeAttribute.Key ) == true )
-                    {
-                        AddChangeHandler( control, () => OnQualifierUpdated( control, new EventArgs() ) );
-                    }
+                    AddChangeHandler( control, () => OnQualifierUpdated( control, new EventArgs() ) );
 
                     controls.Add( control );
                 }
@@ -571,7 +557,7 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override void SetFilterCompareValue( Control control, string value )
         {
-            if ( SelectionMode == ValuePickerSelectionMode.Multiple )
+            if ( IsMultipleSelection )
             {
                 base.SetFilterCompareValue( control, value );
             }
@@ -609,7 +595,7 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override Control FilterCompareControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
         {
-            if ( SelectionMode == ValuePickerSelectionMode.Single )
+            if ( !IsMultipleSelection )
             {
                 var lbl = new Label
                 {

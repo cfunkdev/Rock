@@ -58,15 +58,6 @@ export const ConfigurationComponent = defineComponent({
             return attrs;
         });
 
-        const sideEffectConfigurationKeys = computed((): string[] => {
-            try {
-                return JSON.parse(props.configurationProperties["SideEffectKeys"] ?? "[]") as string[];
-            }
-            catch {
-                return [];
-            }
-        });
-
         /**
          * Update the modelValue property if any value of the dictionary has
          * actually changed. This helps prevent unwanted postbacks if the value
@@ -114,14 +105,7 @@ export const ConfigurationComponent = defineComponent({
                         continue;
                     }
 
-                    // Check if this key is one that requires new configuration
-                    // properties to be retrieved from the server.
-                    if (sideEffectConfigurationKeys.value.includes(key)) {
-                        emit("updateConfiguration");
-                    }
-                    else {
-                        emit("updateConfigurationValue", key, newValue[key]);
-                    }
+                    emit("updateConfiguration");
                 }
             }
         });

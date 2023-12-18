@@ -78,9 +78,9 @@ namespace Rock.Field.Types
         /// </summary>
         /// <param name="privateConfigurationValues">The configuration values that describe the field type.</param>
         /// <returns>The style to display the edit control in.</returns>
-        protected virtual ItemValuePickerDisplayStyle GetDisplayStyle( Dictionary<string, string> privateConfigurationValues )
+        protected virtual UniversalItemValuePickerDisplayStyle GetDisplayStyle( Dictionary<string, string> privateConfigurationValues )
         {
-            return ItemValuePickerDisplayStyle.Auto;
+            return UniversalItemValuePickerDisplayStyle.Auto;
         }
 
         /// <summary>
@@ -161,15 +161,15 @@ namespace Rock.Field.Types
             var privateConfigurationValues = configurationValues.ToDictionary( k => k.Key, v => v.Value.Value );
             var displayMode = GetDisplayStyle( privateConfigurationValues );
 
-            if ( displayMode == ItemValuePickerDisplayStyle.List )
+            if ( displayMode == UniversalItemValuePickerDisplayStyle.List )
             {
-                return SelectionMode == ValuePickerSelectionMode.Single
+                return !IsMultipleSelection
                     ? GetSingleSelectionListEditControl( privateConfigurationValues, id )
                     : GetMultipleSelectionListEditControl( privateConfigurationValues, id );
             }
             else
             {
-                return SelectionMode == ValuePickerSelectionMode.Single
+                return !IsMultipleSelection
                     ? GetSingleSelectionCondensedEditControl( privateConfigurationValues, id )
                     : GetMultipleSelectionCondensedEditControl( privateConfigurationValues, id );
             }
@@ -281,7 +281,7 @@ namespace Rock.Field.Types
             var privateConfigurationValues = configurationValues.ToDictionary( k => k.Key, v => v.Value.Value );
             id = $"{id ?? string.Empty}_ctlCompareValue";
 
-            var control = SelectionMode == ValuePickerSelectionMode.Single
+            var control = !IsMultipleSelection
                 ? GetMultipleSelectionListEditControl( privateConfigurationValues, id )
                 : GetSingleSelectionCondensedEditControl( privateConfigurationValues, id );
 
@@ -359,7 +359,7 @@ namespace Rock.Field.Types
     public class DanielTestFieldType : UniversalItemPickerFieldType
     {
         /// <inheritdoc/>
-        protected override ValuePickerSelectionMode SelectionMode => ValuePickerSelectionMode.Single;
+        protected override bool IsMultipleSelection => false;
 
         /// <inheritdoc/>
         public override string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
@@ -381,9 +381,9 @@ namespace Rock.Field.Types
         }
 
         /// <inheritdoc/>
-        protected override ItemValuePickerDisplayStyle GetDisplayStyle( Dictionary<string, string> privateConfigurationValues )
+        protected override UniversalItemValuePickerDisplayStyle GetDisplayStyle( Dictionary<string, string> privateConfigurationValues )
         {
-            return privateConfigurationValues.GetValueOrNull( "AsList" ).AsBoolean() ? ItemValuePickerDisplayStyle.List : ItemValuePickerDisplayStyle.Condensed;
+            return privateConfigurationValues.GetValueOrNull( "AsList" ).AsBoolean() ? UniversalItemValuePickerDisplayStyle.List : UniversalItemValuePickerDisplayStyle.Condensed;
         }
 
         /// <inheritdoc/>
@@ -404,16 +404,6 @@ namespace Rock.Field.Types
             }
 
             return items;
-        }
-
-        /// <inheritdoc/>
-        protected override List<string> GetVolatileConfigurationKeys()
-        {
-            return new List<string>
-            {
-                "ValueCount",
-                "ColumnCount"
-            };
         }
     }
 
@@ -431,7 +421,7 @@ namespace Rock.Field.Types
     public class DanielMultiTestFieldType : UniversalItemPickerFieldType
     {
         /// <inheritdoc/>
-        protected override ValuePickerSelectionMode SelectionMode => ValuePickerSelectionMode.Multiple;
+        protected override bool IsMultipleSelection => true;
 
         /// <inheritdoc/>
         public override string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
@@ -453,9 +443,9 @@ namespace Rock.Field.Types
         }
 
         /// <inheritdoc/>
-        protected override ItemValuePickerDisplayStyle GetDisplayStyle( Dictionary<string, string> privateConfigurationValues )
+        protected override UniversalItemValuePickerDisplayStyle GetDisplayStyle( Dictionary<string, string> privateConfigurationValues )
         {
-            return privateConfigurationValues.GetValueOrNull( "AsList" ).AsBoolean() ? ItemValuePickerDisplayStyle.List : ItemValuePickerDisplayStyle.Condensed;
+            return privateConfigurationValues.GetValueOrNull( "AsList" ).AsBoolean() ? UniversalItemValuePickerDisplayStyle.List : UniversalItemValuePickerDisplayStyle.Condensed;
         }
 
         /// <inheritdoc/>
@@ -477,38 +467,12 @@ namespace Rock.Field.Types
 
             return items;
         }
-
-        /// <inheritdoc/>
-        protected override List<string> GetVolatileConfigurationKeys()
-        {
-            return new List<string>
-            {
-                "ValueCount",
-                "ColumnCount"
-            };
-        }
-    }
-
-    /// <summary>
-    /// The selection mode the item value picker will operate in.
-    /// </summary>
-    public enum ValuePickerSelectionMode
-    {
-        /// <summary>
-        /// The person is only allowed to single one item.
-        /// </summary>
-        Single = 0,
-
-        /// <summary>
-        /// The person is allowed to select multiple items.
-        /// </summary>
-        Multiple = 1
     }
 
     /// <summary>
     /// The way to display the items for the item value pickers.
     /// </summary>
-    public enum ItemValuePickerDisplayStyle
+    public enum UniversalItemValuePickerDisplayStyle
     {
         /// <summary>
         /// Let the system decide the best way to display the list of options.
