@@ -39,6 +39,7 @@ namespace Rock.Field.Types
             return true;
         }
 
+        /// <inheritdoc/>
         public sealed override Dictionary<string, string> GetPublicConfigurationValues( Dictionary<string, string> privateConfigurationValues, ConfigurationValueUsage usage, string value )
         {
             if ( usage == ConfigurationValueUsage.View )
@@ -105,9 +106,6 @@ namespace Rock.Field.Types
         }
 
         #endregion
-
-        /// <inheritdoc/>
-        public abstract override string GetTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues );
 
 #if WEBFORMS
 
@@ -364,7 +362,7 @@ namespace Rock.Field.Types
         protected override ValuePickerSelectionMode SelectionMode => ValuePickerSelectionMode.Single;
 
         /// <inheritdoc/>
-        public override string GetTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        public override string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
             if ( privateValue.IsNullOrWhiteSpace() )
             {
@@ -436,7 +434,7 @@ namespace Rock.Field.Types
         protected override ValuePickerSelectionMode SelectionMode => ValuePickerSelectionMode.Multiple;
 
         /// <inheritdoc/>
-        public override string GetTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        public override string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
             if ( privateValue.IsNullOrWhiteSpace() )
             {

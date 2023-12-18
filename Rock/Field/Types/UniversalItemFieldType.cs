@@ -92,6 +92,14 @@ namespace Rock.Field.Types
             return privateValue.Split( new[] { ',' }, StringSplitOptions.RemoveEmptyEntries ).ToList();
         }
 
+        /// <summary>
+        /// Formats the value into a user-friendly string of plain text.
+        /// </summary>
+        /// <param name="privateValue">The private (database) value.</param>
+        /// <param name="privateConfigurationValues">The private (database) configuration values.</param>
+        /// <returns>A plain string of text.</returns>
+        public abstract string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues );
+
         #endregion
 
         #region Sealed Methods
@@ -261,6 +269,62 @@ namespace Rock.Field.Types
             return GetTextValue( privateValue, privateConfigurationValues );
         }
 
+        /// <inheritdoc/>
+        public sealed override string GetTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            return GetItemTextValue( privateValue, privateConfigurationValues );
+        }
+
+        /// <inheritdoc/>
+        public sealed override string GetCondensedTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            return GetItemTextValue( privateValue, privateConfigurationValues );
+        }
+
+        /// <inheritdoc/>
+        public sealed override string GetHtmlValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            return GetItemTextValue( privateValue, privateConfigurationValues );
+        }
+
+        /// <inheritdoc/>
+        public sealed override string GetCondensedHtmlValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            return GetItemTextValue( privateValue, privateConfigurationValues );
+        }
+
+        /// <inheritdoc/>
+        public sealed override PersistedValues GetPersistedValues( string privateValue, Dictionary<string, string> privateConfigurationValues, IDictionary<string, object> cache )
+        {
+            var textValue = GetItemTextValue( privateValue, privateConfigurationValues );
+
+            return new PersistedValues
+            {
+                TextValue = textValue,
+                HtmlValue = textValue,
+                CondensedTextValue = textValue,
+                CondensedHtmlValue = textValue
+            };
+        }
+
+        /// <inheritdoc/>
+        public sealed override bool IsPersistedValueInvalidated( Dictionary<string, string> oldPrivateConfigurationValues, Dictionary<string, string> newPrivateConfigurationValues )
+        {
+            return base.IsPersistedValueInvalidated( oldPrivateConfigurationValues, newPrivateConfigurationValues );
+        }
+
+        /// <inheritdoc/>
+        public sealed override bool IsPersistedValueSupported( Dictionary<string, string> privateConfigurationValues )
+        {
+            return base.IsPersistedValueSupported( privateConfigurationValues );
+        }
+
+        /// <inheritdoc/>
+        public sealed override bool IsPersistedValueVolatile( Dictionary<string, string> privateConfigurationValues )
+        {
+            return base.IsPersistedValueVolatile( privateConfigurationValues );
+        }
+
         #endregion
 
         #region Private Methods
@@ -284,27 +348,11 @@ namespace Rock.Field.Types
 
         #region Configuration Methods
 
+        /// <inheritdoc/>
         public sealed override Dictionary<string, string> GetPrivateConfigurationValues( Dictionary<string, string> publicConfigurationValues )
         {
             return base.GetPrivateConfigurationValues( publicConfigurationValues );
         }
-
-        //public sealed override Dictionary<string, string> GetPublicConfigurationValues( Dictionary<string, string> privateConfigurationValues, ConfigurationValueUsage usage, string value )
-        //{
-        //    if ( usage == ConfigurationValueUsage.View )
-        //    {
-        //        return new Dictionary<string, string>();
-        //    }
-        //    else if ( usage == ConfigurationValueUsage.Edit )
-        //    {
-        //        return new Dictionary<string, string>
-        //        {
-        //            ["ConfigurationValues"] = GetUniversalConfigurationValues( privateConfigurationValues, usage, value ).ToJson()
-        //        };
-        //    }
-
-        //    return base.GetPublicConfigurationValues( privateConfigurationValues, usage, value );
-        //}
 
         /// <inheritdoc/>
         public sealed override Dictionary<string, string> GetPublicEditConfigurationProperties( Dictionary<string, string> privateConfigurationValues )
@@ -530,7 +578,7 @@ namespace Rock.Field.Types
         }
 
         /// <inheritdoc/>
-        public override string GetFilterCompareValue( Control control, FilterMode filterMode )
+        public sealed override string GetFilterCompareValue( Control control, FilterMode filterMode )
         {
             if ( control is Label )
             {
@@ -559,7 +607,7 @@ namespace Rock.Field.Types
         }
 
         /// <inheritdoc/>
-        public override Control FilterCompareControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
+        public sealed override Control FilterCompareControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
         {
             if ( SelectionMode == ValuePickerSelectionMode.Single )
             {
