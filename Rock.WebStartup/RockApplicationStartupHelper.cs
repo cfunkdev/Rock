@@ -29,6 +29,8 @@ using System.Web;
 
 using DotLiquid;
 
+using Microsoft.Extensions.Logging;
+
 using Rock.Bus;
 using Rock.Configuration;
 using Rock.Data;
@@ -37,6 +39,7 @@ using Rock.Lava.DotLiquid;
 using Rock.Lava.Fluid;
 using Rock.Lava.RockLiquid;
 using Rock.Model;
+using Rock.Observability;
 using Rock.Utility.Settings;
 using Rock.Web.Cache;
 using Rock.WebFarm;
@@ -130,6 +133,17 @@ namespace Rock.WebStartup
             }
 
             RockInstanceConfig.SetDatabaseIsAvailable( true );
+
+            // Initialize observability after the database.
+            LogStartupMessage( "Initializing Observability" );
+            ObservabilityHelper.ConfigureObservability( true );
+            ShowDebugTimingMessage( "Initialize Observability" );
+
+            // Initialize the logger after the database.
+            LogStartupMessage( "Initializing RockLogger" );
+            Rock.Logging.RockLogger.LoadConfiguration();
+            Rock.Logging.RockLogger.LoggerFactory.CreateLogger( "Rock.WebStartup.RockApplicationStartupHelper" ).LogCritical( "Logger Initialized" );
+            ShowDebugTimingMessage( "RockLogger" );
 
             // Configure the values for RockDateTime.
             // To avoid the overhead of initializing the GlobalAttributesCache prior to LoadCacheObjects(), load these from the database instead.

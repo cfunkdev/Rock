@@ -17,7 +17,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text;
 
 using Newtonsoft.Json;
 
@@ -79,8 +81,6 @@ namespace Rock.Logging
         /// <returns></returns>
         public List<RockLogEvent> GetEvents( int startIndex, int count )
         {
-            _rockLogger.Close();
-
             var logs = GetLogLines( startIndex, count );
 
             return GetRockLogEventsFromLogLines( startIndex, count, logs );
@@ -117,12 +117,12 @@ namespace Rock.Logging
             var currentFileIndex = 0;
             try
             {
-                var logs = System.IO.File.ReadAllLines( rockLogFiles[currentFileIndex] );
+                var logs = ReadAllLinesSharedAccess( rockLogFiles[currentFileIndex] );
 
                 while ( ( startIndex >= logs.Length || startIndex + count >= logs.Length ) && currentFileIndex < ( rockLogFiles.Count - 1 ) )
                 {
                     currentFileIndex++;
-                    var additionalLogs = System.IO.File.ReadAllLines( rockLogFiles[currentFileIndex] );
+                    var additionalLogs = ReadAllLinesSharedAccess( rockLogFiles[currentFileIndex] );
                     var temp = new string[additionalLogs.Length + logs.Length];
                     additionalLogs.CopyTo( temp, 0 );
                     logs.CopyTo( temp, additionalLogs.Length );
@@ -136,6 +136,26 @@ namespace Rock.Logging
             {
                 ExceptionLogService.LogException( ex );
                 return new string[] { };
+            }
+        }
+
+        private string[] ReadAllLinesSharedAccess( string filename )
+        {
+            using ( var fs = File.Open( filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite ) )
+            {
+                var list = new List<string>();
+
+                using ( StreamReader streamReader = new StreamReader( fs, Encoding.UTF8 ) )
+                {
+                    string item;
+
+                    while ( ( item = streamReader.ReadLine() ) != null )
+                    {
+                        list.Add( item );
+                    }
+                }
+
+                return list.ToArray();
             }
         }
 
@@ -153,18 +173,15 @@ namespace Rock.Logging
             {
                 foreach ( var filePath in rockLogFiles )
                 {
-                    _rockLogger.Close();
                     var logFileInfo = new System.IO.FileInfo( filePath );
 
                     // if the logFile is zero-length, we'll get an i/o error when reading it, so skip it
                     if ( logFileInfo.Exists && logFileInfo.Length > 0 )
                     {
-
-                        using ( var file = logFileInfo.OpenRead() )
+                        using ( var file = logFileInfo.Open( FileMode.Open, FileAccess.Read, FileShare.ReadWrite ) )
                         {
                             lines += file.CountLines();
                         }
-
                     }
                 }
             }
@@ -211,8 +228,8 @@ namespace Rock.Logging
             {
                 var evt = LogEventReader.ReadFromString( logLine, _jsonSerializer );
 
-                var domain = evt.Properties["domain"].ToString();
-                evt.RemovePropertyIfPresent( "domain" );
+                var domain = evt.Properties["SourceContext"].ToString();
+                evt.RemovePropertyIfPresent( "SourceContext" );
 
                 var message = evt.RenderMessage().Replace( "{domain}", "" ).Trim();
                 domain = domain.Replace( "\"", "" );

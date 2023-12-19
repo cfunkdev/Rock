@@ -14,6 +14,20 @@
 // limitations under the License.
 // </copyright>
 //
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Debug;
+
+using Rock.Observability;
+
+using Serilog.Formatting.Compact;
+using Serilog;
+using Serilog.Events;
+using System.Collections.Generic;
+using System;
+using Serilog.Core;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace Rock.Logging
 {
     /// <summary>
@@ -22,6 +36,11 @@ namespace Rock.Logging
     public static class RockLogger
     {
         private static IRockLogger _log;
+
+        private static readonly ServiceProvider _serviceProvider;
+
+        private static readonly DynamicConfigurationProvider _dynamicConfigurationProvider;
+
         /// <summary>
         /// Gets the logger with logging methods.
         /// </summary>
@@ -42,6 +61,13 @@ namespace Rock.Logging
         }
 
         /// <summary>
+        /// Gets the logger factory currently associated with this application
+        /// instance.
+        /// </summary>
+        /// <value>The logger factory.</value>
+        public static ILoggerFactory LoggerFactory { get; private set; } = new NullLoggerFactory();
+
+        /// <summary>
         /// Gets the log reader.
         /// </summary>
         /// <value>
@@ -49,5 +75,60 @@ namespace Rock.Logging
         /// </value>
         public static IRockLogReader LogReader => new RockSerilogReader( Log );
 
+        //internal static SeriLoggerWrapper SerilogWrapper { get; } = new SeriLoggerWrapper();
+
+        internal static SeriSinkWrapper SinkWrapper { get; } = new SeriSinkWrapper();
+
+        static RockLogger()
+        {
+            var serviceCollection = new ServiceCollection();
+
+            _dynamicConfigurationProvider = new DynamicConfigurationProvider();
+            _dynamicConfigurationProvider.Set( "LogLevel:Default", "None" );
+
+            var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+                .Add( _dynamicConfigurationProvider )
+                .Build();
+
+            serviceCollection.AddLogging( cfg =>
+            {
+                cfg.AddConfiguration( configuration );
+
+                ObservabilityHelper.ConfigureLoggingBuilder( cfg );
+                cfg.AddProvider( new DebugLoggerProvider() );
+
+                var seriLogger = new LoggerConfiguration()
+                     .MinimumLevel
+                     .Verbose()
+                     .WriteTo
+                     .Sink( SinkWrapper )
+                     .CreateLogger();
+
+                cfg.AddProvider( new Serilog.Extensions.Logging.SerilogLoggerProvider( seriLogger ) );
+            } );
+
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+            LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>();
+        }
+
+        internal class SeriSinkWrapper : ILogEventSink
+        {
+            public Serilog.ILogger Logger { get; set; }
+
+            public void Emit( LogEvent logEvent )
+            {
+                Logger?.Write( logEvent );
+            }
+        }
+
+        internal static void LoadConfiguration()
+        {
+            var configurationJson = @"{
+  ""LogLevel"": {
+    ""Default"": ""Information""
+  }
+}";
+            _dynamicConfigurationProvider.LoadFromJson( configurationJson, true );
+        }
     }
 }

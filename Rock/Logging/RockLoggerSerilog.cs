@@ -17,6 +17,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using Microsoft.Extensions.Logging;
+
 using Rock.Model;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -32,9 +35,6 @@ namespace Rock.Logging
     internal class RockLoggerSerilog : IRockLogger
     {
         private const string DEFAULT_DOMAIN = "OTHER";
-        private DateTime _ConfigurationLastLoaded;
-        private ILogger _logger = null;
-        private HashSet<string> _domains;
         private readonly string _rockLogDirectory;
         private readonly string _searchPattern;
 
@@ -86,19 +86,8 @@ namespace Rock.Logging
         /// </summary>
         public void Close()
         {
-            /* 
-                When reading log files, we have to Dispose to get all the buffered data to get flushed.
-                While we are waiting for the flush, we'll set the logger to Serilog.Core.Logger.None to help avoid
-                a threading issue (like trying to read and write from different threads at the exact same time).
-
-                The next WriteToLog will re-enable logging 
-            */
-
-            if ( _logger != null && _logger != Serilog.Core.Logger.None )
-            {
-                ( _logger as IDisposable )?.Dispose();
-                _logger = Serilog.Core.Logger.None;
-            }
+            // We no longer need to close the logger as we now support
+            // shared file access when reading the logs.
         }
 
         /// <summary>
@@ -145,29 +134,7 @@ namespace Rock.Logging
         /// <param name="messageTemplate">The message template.</param>
         public void WriteToLog( RockLogLevel logLevel, string domain, string messageTemplate )
         {
-            EnsureLoggerExistsAndUpdated();
-
-            if ( !ShouldLogEntry( logLevel, domain ) )
-            {
-                return;
-            }
-
-            var serilogLogLevel = GetLogEventLevelFromRockLogLevel( logLevel );
-            if ( _logger != null && _logger != Serilog.Core.Logger.None )
-            {
-                _logger?.Write( serilogLogLevel, GetMessageTemplateWithDomain( messageTemplate ), domain.ToUpper() );
-                if ( _logger == null || _logger == Serilog.Core.Logger.None )
-                {
-                    // It is possible that it wrote depending on exact timing, but 
-                    // this could happen if there are Reads (From the Rock Logs block) and writes happening at *exactly* the same time
-                    System.Diagnostics.Debug.WriteLine( $"Might not have written to _logger due to read/write conflict." );
-                }
-            }
-            else
-            {
-                // This could happen if there are Reads (From the Rock Logs block) and writes happening at exactly the same time
-                System.Diagnostics.Debug.WriteLine( $"Didn't write to _logger due to read/write conflict." );
-            }
+            RockLogger.LoggerFactory.CreateLogger( domain ).Log( GetLogLevelFromRockLogLevel( logLevel ), messageTemplate );
         }
 
         /// <summary>
@@ -190,15 +157,7 @@ namespace Rock.Logging
         /// <param name="propertyValues">The property values.</param>
         public void WriteToLog( RockLogLevel logLevel, string domain, string messageTemplate, params object[] propertyValues )
         {
-            EnsureLoggerExistsAndUpdated();
-
-            if ( !ShouldLogEntry( logLevel, domain ) )
-            {
-                return;
-            }
-
-            var serilogLogLevel = GetLogEventLevelFromRockLogLevel( logLevel );
-            _logger.Write( serilogLogLevel, GetMessageTemplateWithDomain( messageTemplate ), AddDomainToObjectArray( propertyValues, domain.ToUpper() ) );
+            RockLogger.LoggerFactory.CreateLogger( domain ).Log( GetLogLevelFromRockLogLevel( logLevel ), messageTemplate, propertyValues );
         }
 
         /// <summary>
@@ -221,15 +180,7 @@ namespace Rock.Logging
         /// <param name="messageTemplate">The message template.</param>
         public void WriteToLog( RockLogLevel logLevel, Exception exception, string domain, string messageTemplate )
         {
-            EnsureLoggerExistsAndUpdated();
-
-            if ( !ShouldLogEntry( logLevel, domain ) )
-            {
-                return;
-            }
-
-            var serilogLogLevel = GetLogEventLevelFromRockLogLevel( logLevel );
-            _logger.Write( serilogLogLevel, exception, GetMessageTemplateWithDomain( messageTemplate ), domain.ToUpper() );
+            RockLogger.LoggerFactory.CreateLogger( domain ).Log( GetLogLevelFromRockLogLevel( logLevel ), exception, messageTemplate );
         }
 
         /// <summary>
@@ -254,15 +205,7 @@ namespace Rock.Logging
         /// <param name="propertyValues">The property values.</param>
         public void WriteToLog( RockLogLevel logLevel, Exception exception, string domain, string messageTemplate, params object[] propertyValues )
         {
-            EnsureLoggerExistsAndUpdated();
-
-            if ( !ShouldLogEntry( logLevel, domain ) )
-            {
-                return;
-            }
-
-            var serilogLogLevel = GetLogEventLevelFromRockLogLevel( logLevel );
-            _logger.Write( serilogLogLevel, exception, GetMessageTemplateWithDomain( messageTemplate ), AddDomainToObjectArray( propertyValues, domain.ToUpper() ) );
+            RockLogger.LoggerFactory.CreateLogger( domain ).Log( GetLogLevelFromRockLogLevel( logLevel ), exception, messageTemplate, propertyValues );
         }
         #endregion
 
@@ -785,41 +728,38 @@ namespace Rock.Logging
         #endregion
 
         #region Private Helper Methods
-        private string GetMessageTemplateWithDomain( string messageTemplate )
-        {
-            return $"{{domain}} {messageTemplate}";
-        }
 
-        private object[] AddDomainToObjectArray( object[] propertyValues, string domain )
-        {
-            var properties = new List<object>( propertyValues );
-            properties.Insert( 0, domain );
-            return properties.ToArray();
-        }
-
-        private Serilog.Events.LogEventLevel GetLogEventLevelFromRockLogLevel( RockLogLevel logLevel )
+        private LogLevel GetLogLevelFromRockLogLevel( RockLogLevel logLevel )
         {
             switch ( logLevel )
             {
-                case ( RockLogLevel.Error ):
-                    return Serilog.Events.LogEventLevel.Error;
-                case ( RockLogLevel.Warning ):
-                    return Serilog.Events.LogEventLevel.Warning;
-                case ( RockLogLevel.Info ):
-                    return Serilog.Events.LogEventLevel.Information;
-                case ( RockLogLevel.Debug ):
-                    return Serilog.Events.LogEventLevel.Debug;
-                case ( RockLogLevel.All ):
-                    return Serilog.Events.LogEventLevel.Verbose;
+                case RockLogLevel.Off:
+                    return LogLevel.None;
+
+                case RockLogLevel.Fatal:
+                    return LogLevel.Critical;
+
+                case RockLogLevel.Error:
+                    return LogLevel.Error;
+
+                case RockLogLevel.Warning:
+                    return LogLevel.Warning;
+
+                case RockLogLevel.Info:
+                    return LogLevel.Information;
+
+                case RockLogLevel.Debug:
+                    return LogLevel.Debug;
+
+                case RockLogLevel.All:
                 default:
-                    return Serilog.Events.LogEventLevel.Fatal;
+                    return LogLevel.Trace;
             }
         }
 
         private void LoadConfiguration( IRockLogConfiguration rockLogConfiguration )
         {
-            _domains = new HashSet<string>( LogConfiguration.DomainsToLog.Select( s => s.ToUpper() ).Distinct() );
-            _logger = new LoggerConfiguration()
+            var logger = new LoggerConfiguration()
                  .MinimumLevel
                  .Verbose()
                  .WriteTo
@@ -828,24 +768,13 @@ namespace Rock.Logging
                      rollingInterval: RollingInterval.Infinite,
                      buffered: true,
                      shared: false,
+                     flushToDiskInterval: TimeSpan.FromSeconds( 10 ),
                      retainedFileCountLimit: rockLogConfiguration.NumberOfLogFiles,
                      rollOnFileSizeLimit: true,
                      fileSizeLimitBytes: rockLogConfiguration.MaxFileSize * 1024 * 1024 )
                  .CreateLogger();
 
-            _ConfigurationLastLoaded = RockDateTime.Now;
-        }
-
-        /// <summary>
-        /// Ensures the logger exists and updated.
-        /// </summary>
-        private void EnsureLoggerExistsAndUpdated()
-        {
-            if ( _ConfigurationLastLoaded < LogConfiguration.LastUpdated || _logger == null || _logger == Serilog.Core.Logger.None )
-            {
-                Close();
-                LoadConfiguration( LogConfiguration );
-            }
+            RockLogger.SinkWrapper.Logger = logger;
         }
 
         /// <summary>
@@ -866,19 +795,13 @@ namespace Rock.Logging
         /// <param name="logLevel">The log level.</param>
         /// <param name="domain">The domain.</param>
         /// <returns></returns>
+        [Obsolete( "Use the LoggerFactory on RockLogger instead." )]
+        [RockObsolete( "1.17" )]
         public bool ShouldLogEntry( RockLogLevel logLevel, string domain )
         {
-            if ( logLevel > LogConfiguration.LogLevel || logLevel == RockLogLevel.Off )
-            {
-                return false;
-            }
-
-            if ( !_domains.Contains( domain.ToUpper() ) )
-            {
-                return false;
-            }
             return true;
         }
+
         #endregion
     }
 }
