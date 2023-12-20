@@ -26,6 +26,7 @@ namespace Rock.Tests.Integration.Core.Logging
     public class RockSerilogReaderTests
     {
         private readonly string LogFolder = $"\\logs\\{Guid.NewGuid()}";
+
         [TestCleanup]
         public void Cleanup()
         {
@@ -35,18 +36,14 @@ namespace Rock.Tests.Integration.Core.Logging
         [TestMethod]
         public void RockLogReaderShouldReturnZeroLogEntriesIfDirectoryDoesNotExists()
         {
-            var config = new RockLogConfiguration
+            var config = new SerilogConfiguration
             {
-                LogLevel = RockLogLevel.All,
                 MaxFileSize = 1,
                 NumberOfLogFiles = 3,
-                DomainsToLog = new List<string> { "OTHER" },
-                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log",
-                LastUpdated = RockDateTime.Now
+                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log"
             };
 
-            var logger = ReflectionHelper.InstantiateInternalObject<IRockLogger>( "Rock.Logging.RockLoggerSerilog", config );
-            var rockReader = ReflectionHelper.InstantiateInternalObject<IRockLogReader>( "Rock.Logging.RockSerilogReader", logger );
+            var rockReader = new Rock.Logging.RockSerilogReader( config );
 
             var currentPageIndex = 0;
             var pageSize = 1000;
@@ -58,24 +55,21 @@ namespace Rock.Tests.Integration.Core.Logging
         [TestMethod]
         public void RockLogReaderShouldReturnZeroLogEntriesIfNoLogFilesExist()
         {
-            var config = new RockLogConfiguration
+            var config = new SerilogConfiguration
             {
-                LogLevel = RockLogLevel.All,
                 MaxFileSize = 1,
                 NumberOfLogFiles = 3,
-                DomainsToLog = new List<string> { "OTHER" },
-                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log",
-                LastUpdated = RockDateTime.Now
+                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log"
             };
 
-            var logger = ReflectionHelper.InstantiateInternalObject<IRockLogger>( "Rock.Logging.RockLoggerSerilog", config );
+            var logger = RockLogger.CreateSerilogLogger( config );
 
             logger.Information( "Test" );
-            logger.Close();
+            logger.Dispose();
 
             System.IO.File.Delete( config.LogPath );
 
-            var rockReader = ReflectionHelper.InstantiateInternalObject<IRockLogReader>( "Rock.Logging.RockSerilogReader", logger );
+            var rockReader = new RockSerilogReader( config );
 
             var currentPageIndex = 0;
             var pageSize = 1000;
@@ -87,21 +81,18 @@ namespace Rock.Tests.Integration.Core.Logging
         [TestMethod]
         public void RockLogReaderShouldReturnCorrectRecordCount()
         {
-            var config = new RockLogConfiguration
+            var config = new SerilogConfiguration
             {
-                LogLevel = RockLogLevel.All,
                 MaxFileSize = 1,
                 NumberOfLogFiles = 3,
-                DomainsToLog = new List<string> { "OTHER" },
-                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log",
-                LastUpdated = RockDateTime.Now
+                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log"
             };
 
-            var logger = ReflectionHelper.InstantiateInternalObject<IRockLogger>( "Rock.Logging.RockLoggerSerilog", config );
+            var logger = RockLogger.CreateSerilogLogger( config );
 
-            var expectedLogs = CreateLogFiles( logger );
+            var expectedLogs = CreateLogFiles( logger, config );
 
-            var rockReader = ReflectionHelper.InstantiateInternalObject<IRockLogReader>( "Rock.Logging.RockSerilogReader", logger );
+            var rockReader = new RockSerilogReader( config );
 
             Assert.That.AreEqual( expectedLogs.Count, rockReader.RecordCount );
         }
@@ -109,21 +100,18 @@ namespace Rock.Tests.Integration.Core.Logging
         [TestMethod]
         public void RockLogReaderShouldReturnLogEntriesInCorrectOrder()
         {
-            var config = new RockLogConfiguration
+            var config = new SerilogConfiguration
             {
-                LogLevel = RockLogLevel.All,
                 MaxFileSize = 1,
                 NumberOfLogFiles = 3,
-                DomainsToLog = new List<string> { "OTHER" },
-                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log",
-                LastUpdated = RockDateTime.Now
+                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log"
             };
 
-            var logger = ReflectionHelper.InstantiateInternalObject<IRockLogger>( "Rock.Logging.RockLoggerSerilog", config );
+            var logger = RockLogger.CreateSerilogLogger( config );
 
-            var expectedLogs = CreateLogFiles( logger );
+            var expectedLogs = CreateLogFiles( logger, config );
 
-            var rockReader = ReflectionHelper.InstantiateInternalObject<IRockLogReader>( "Rock.Logging.RockSerilogReader", logger );
+            var rockReader = new RockSerilogReader( config );
 
             var currentPageIndex = 0;
             var pageSize = 1000;
@@ -149,21 +137,18 @@ namespace Rock.Tests.Integration.Core.Logging
         [TestMethod]
         public void RockLogReaderShouldReturnNoResultsWithOutOfRangePageIndex()
         {
-            var config = new RockLogConfiguration
+            var config = new SerilogConfiguration
             {
-                LogLevel = RockLogLevel.All,
                 MaxFileSize = 1,
                 NumberOfLogFiles = 3,
-                DomainsToLog = new List<string> { "OTHER" },
-                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log",
-                LastUpdated = RockDateTime.Now
+                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log"
             };
 
-            var logger = ReflectionHelper.InstantiateInternalObject<IRockLogger>( "Rock.Logging.RockLoggerSerilog", config );
+            var logger = RockLogger.CreateSerilogLogger( config );
 
-            var expectedLogs = CreateLogFiles( logger );
+            var expectedLogs = CreateLogFiles( logger, config );
 
-            var rockReader = ReflectionHelper.InstantiateInternalObject<IRockLogReader>( "Rock.Logging.RockSerilogReader", logger );
+            var rockReader = new RockSerilogReader( config );
 
             var currentPageIndex = 19000;
             var pageSize = 1000;
@@ -176,21 +161,18 @@ namespace Rock.Tests.Integration.Core.Logging
         [TestMethod]
         public void RockLogReaderShouldReturnAllResultsWithMaxPlusOnePageSize()
         {
-            var config = new RockLogConfiguration
+            var config = new SerilogConfiguration
             {
-                LogLevel = RockLogLevel.All,
                 MaxFileSize = 1,
                 NumberOfLogFiles = 3,
-                DomainsToLog = new List<string> { "OTHER" },
-                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log",
-                LastUpdated = RockDateTime.Now
+                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log"
             };
 
-            var logger = ReflectionHelper.InstantiateInternalObject<IRockLogger>( "Rock.Logging.RockLoggerSerilog", config );
+            var logger = RockLogger.CreateSerilogLogger( config );
 
-            var expectedLogs = CreateLogFiles( logger );
+            var expectedLogs = CreateLogFiles( logger, config );
 
-            var rockReader = ReflectionHelper.InstantiateInternalObject<IRockLogReader>( "Rock.Logging.RockSerilogReader", logger );
+            var rockReader = new RockSerilogReader( config );
 
             var currentPageIndex = 0;
             var pageSize = 19000;
@@ -203,23 +185,20 @@ namespace Rock.Tests.Integration.Core.Logging
         [TestMethod]
         public void RockLogReaderShouldHandleDomainCorrectly()
         {
-            var config = new RockLogConfiguration
+            var config = new SerilogConfiguration
             {
-                LogLevel = RockLogLevel.All,
                 MaxFileSize = 1,
                 NumberOfLogFiles = 3,
-                DomainsToLog = new List<string> { "OTHER" },
-                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log",
-                LastUpdated = RockDateTime.Now
+                LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log"
             };
 
-            var logger = ReflectionHelper.InstantiateInternalObject<IRockLogger>( "Rock.Logging.RockLoggerSerilog", config );
+            var logger = RockLogger.CreateSerilogLogger( config );
             var expectedMessage = "This is a test.";
-            var expectedDomain = RockLogDomains.Other;
+            var expectedCategory = "TestCategory";
 
-            logger.Information( expectedMessage );
+            logger.Information( expectedCategory, expectedMessage );
 
-            var rockReader = ReflectionHelper.InstantiateInternalObject<IRockLogReader>( "Rock.Logging.RockSerilogReader", logger );
+            var rockReader = new RockSerilogReader( config );
 
             var currentPageIndex = 0;
             var pageSize = 100;
@@ -228,12 +207,12 @@ namespace Rock.Tests.Integration.Core.Logging
             var results = rockReader.GetEvents( currentPageIndex, pageSize );
             Assert.That.AreEqual( 1, results.Count );
             Assert.That.AreEqual( expectedMessage, results[0].Message );
-            Assert.That.AreEqual( expectedDomain, results[0].Domain );
+            Assert.That.AreEqual( expectedCategory, results[0].Category );
         }
 
-        private List<string> CreateLogFiles( IRockLogger logger )
+        private List<string> CreateLogFiles( Serilog.Core.Logger logger, SerilogConfiguration config )
         {
-            var maxByteCount = logger.LogConfiguration.MaxFileSize * 1024 * 1024 * ( logger.LogConfiguration.NumberOfLogFiles - 1 );
+            var maxByteCount = config.MaxFileSize * 1024 * 1024 * ( config.NumberOfLogFiles - 1 );
             var currentByteCount = 0;
             var logRecordSize = Encoding.ASCII.GetByteCount( "{\"@t\":\"0000-00-00T00:00:00.0000000Z\",\"@mt\":\"{domain} Test - 00000000-0000-0000-0000-000000000000\",\"domain\":\"OTHER\"}" );
             var expectedLogs = new List<string>();

@@ -198,13 +198,13 @@ namespace Rock.Logging
         }
 
         /// <summary>
-        /// Loads the serilog configuration.
+        /// Creates the serilog logger.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        private static void LoadSerilogConfiguration( SerilogConfiguration configuration )
+        /// <returns>A logger instance.</returns>
+        internal static Serilog.Core.Logger CreateSerilogLogger( SerilogConfiguration configuration )
         {
-            // Configure serilogger.
-            var serilogger = new LoggerConfiguration()
+            return new LoggerConfiguration()
                  .MinimumLevel
                  .Verbose()
                  .WriteTo
@@ -218,8 +218,15 @@ namespace Rock.Logging
                      rollOnFileSizeLimit: true,
                      fileSizeLimitBytes: configuration.MaxFileSize * 1024 * 1024 )
                  .CreateLogger();
+        }
 
-            SinkWrapper.Logger = serilogger;
+        /// <summary>
+        /// Loads the serilog configuration.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        private static void LoadSerilogConfiguration( SerilogConfiguration configuration )
+        {
+            SinkWrapper.Logger = CreateSerilogLogger( configuration );
         }
     }
 }
