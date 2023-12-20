@@ -34,7 +34,6 @@ using Rock.Logging;
 using Rock.Model;
 using Rock.Observability;
 using Rock.Web.Cache;
-using WebGrease.Css.Extensions;
 
 namespace Rock.Jobs
 {
@@ -137,6 +136,7 @@ namespace Rock.Jobs
         Order = 9,
         Key = AttributeKey.StaleAnonymousVisitorRecordRetentionPeriodInDays )]
 
+    [RockLoggingCategory]
     public class RockCleanup : RockJob
     {
         /// <summary>

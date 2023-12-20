@@ -29,8 +29,6 @@ using System.Web;
 
 using DotLiquid;
 
-using Microsoft.Extensions.Logging;
-
 using Rock.Bus;
 using Rock.Configuration;
 using Rock.Data;
@@ -38,6 +36,7 @@ using Rock.Lava;
 using Rock.Lava.DotLiquid;
 using Rock.Lava.Fluid;
 using Rock.Lava.RockLiquid;
+using Rock.Logging;
 using Rock.Model;
 using Rock.Observability;
 using Rock.Utility.Settings;
@@ -141,8 +140,7 @@ namespace Rock.WebStartup
 
             // Initialize the logger after the database.
             LogStartupMessage( "Initializing RockLogger" );
-            Rock.Logging.RockLogger.LoadConfiguration();
-            Rock.Logging.RockLogger.LoggerFactory.CreateLogger( "Rock.WebStartup.RockApplicationStartupHelper" ).LogCritical( "Logger Initialized" );
+            RockLogger.ReloadConfiguration();
             ShowDebugTimingMessage( "RockLogger" );
 
             // Configure the values for RockDateTime.

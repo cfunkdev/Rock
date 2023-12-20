@@ -14,19 +14,22 @@
 // limitations under the License.
 // </copyright>
 //
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Debug;
 
+using Rock.Attribute;
 using Rock.Observability;
+using Rock.SystemKey;
 
-using Serilog.Formatting.Compact;
 using Serilog;
-using Serilog.Events;
-using System.Collections.Generic;
-using System;
 using Serilog.Core;
-using Microsoft.Extensions.Logging.Abstractions;
+using Serilog.Events;
 
 namespace Rock.Logging
 {
@@ -39,7 +42,9 @@ namespace Rock.Logging
 
         private static readonly ServiceProvider _serviceProvider;
 
-        private static readonly DynamicConfigurationProvider _dynamicConfigurationProvider;
+        private static readonly DynamicConfigurationProvider _standardConfigurationProvider;
+
+        private static readonly DynamicConfigurationProvider _advancedConfigurationProvider;
 
         /// <summary>
         /// Gets the logger with logging methods.
@@ -83,11 +88,14 @@ namespace Rock.Logging
         {
             var serviceCollection = new ServiceCollection();
 
-            _dynamicConfigurationProvider = new DynamicConfigurationProvider();
-            _dynamicConfigurationProvider.Set( "LogLevel:Default", "None" );
+            _standardConfigurationProvider = new DynamicConfigurationProvider();
+            _standardConfigurationProvider.Set( "LogLevel:Default", "None" );
+
+            _advancedConfigurationProvider = new DynamicConfigurationProvider();
 
             var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
-                .Add( _dynamicConfigurationProvider )
+                .Add( _standardConfigurationProvider )
+                .Add( _advancedConfigurationProvider )
                 .Build();
 
             serviceCollection.AddLogging( cfg =>
@@ -121,14 +129,54 @@ namespace Rock.Logging
             }
         }
 
-        internal static void LoadConfiguration()
+        /// <summary>
+        /// Gets the standard categories that have been defined in Rock.
+        /// </summary>
+        /// <returns>A list of category names.</returns>
+        [RockInternal( "1.17", true )]
+        public static List<string> GetStandardCategories()
         {
-            var configurationJson = @"{
-  ""LogLevel"": {
-    ""Default"": ""Information""
-  }
-}";
-            _dynamicConfigurationProvider.LoadFromJson( configurationJson, true );
+            return Reflection.FindTypes( typeof( object ) )
+                .Select( p => p.Value )
+                .Where( t => t.GetCustomAttribute<RockLoggingCategoryAttribute>() != null )
+                .Select( t => t.FullName )
+                .ToList();
+        }
+
+        /// <summary>
+        /// Reloads the configuration defined in the database and reconfigures
+        /// the loggers to match the new settings.
+        /// </summary>
+        [RockInternal( "1.17", true )]
+        public static void ReloadConfiguration()
+        {
+            var configuration = Rock.Web.SystemSettings.GetValue( SystemSetting.ROCK_LOGGING_SETTINGS ).FromJsonOrNull<RockLogSystemSettings>();
+            LoadConfiguration( configuration );
+        }
+
+        /// <summary>
+        /// Loads the configuration specified by the system settings.
+        /// </summary>
+        /// <param name="configuration">The configuration object.</param>
+        private static void LoadConfiguration( RockLogSystemSettings configuration )
+        {
+            var root = new Dictionary<string, object>();
+            var logLevel = new Dictionary<string, string>();
+
+            root.Add( "LogLevel", logLevel );
+
+            logLevel.Add( "Default", "None" );
+
+            if ( configuration.StandardCategories != null )
+            {
+                foreach ( var category in configuration.StandardCategories )
+                {
+                    logLevel.AddOrReplace( category, configuration.StandardLogLevel.ToString() );
+                }
+            }
+
+            _standardConfigurationProvider.LoadFromJson( root.ToJson(), true );
+            _advancedConfigurationProvider.LoadFromJson( configuration.AdvancedSettings, true );
         }
     }
 }
