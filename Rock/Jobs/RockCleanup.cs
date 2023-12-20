@@ -27,6 +27,8 @@ using System.Text;
 
 using Humanizer;
 
+using Microsoft.Extensions.Logging;
+
 using Rock.Attribute;
 using Rock.Core;
 using Rock.Data;
@@ -2604,7 +2606,7 @@ SELECT @@ROWCOUNT
                                     innerEx = innerEx.InnerException;
                                 }
 
-                                Log( RockLogLevel.Warning, $"Error occurred deleting stale anonymous visitor record ID {personAliasId}: {innerEx.Message}" );
+                                Logger.LogWarning( $"Error occurred deleting stale anonymous visitor record ID {personAliasId}: {innerEx.Message}" );
 
                                 // The context we used to attempt the deletion is no
                                 // good to use now since it is in a bad state. Create

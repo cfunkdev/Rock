@@ -203,22 +203,24 @@ namespace Rock.Logging
             return Convert.ToInt32( lines );
         }
 
-        private RockLogLevel GetRockLogLevelFromSerilogLevel( LogEventLevel logLevel )
+        private Microsoft.Extensions.Logging.LogLevel GetRockLogLevelFromSerilogLevel( LogEventLevel logLevel )
         {
             switch ( logLevel )
             {
+                case ( LogEventLevel.Fatal ):
+                    return Microsoft.Extensions.Logging.LogLevel.Critical;
                 case ( LogEventLevel.Error ):
-                    return RockLogLevel.Error;
+                    return Microsoft.Extensions.Logging.LogLevel.Error;
                 case ( LogEventLevel.Warning ):
-                    return RockLogLevel.Warning;
+                    return Microsoft.Extensions.Logging.LogLevel.Warning;
                 case ( LogEventLevel.Information ):
-                    return RockLogLevel.Info;
+                    return Microsoft.Extensions.Logging.LogLevel.Information;
                 case ( LogEventLevel.Debug ):
-                    return RockLogLevel.Debug;
+                    return Microsoft.Extensions.Logging.LogLevel.Debug;
                 case ( LogEventLevel.Verbose ):
-                    return RockLogLevel.All;
+                    return Microsoft.Extensions.Logging.LogLevel.Trace;
                 default:
-                    return RockLogLevel.Fatal;
+                    return Microsoft.Extensions.Logging.LogLevel.None;
             }
         }
 
@@ -228,18 +230,18 @@ namespace Rock.Logging
             {
                 var evt = LogEventReader.ReadFromString( logLine, _jsonSerializer );
 
-                var domain = evt.Properties["SourceContext"].ToString();
+                var category = evt.Properties["SourceContext"].ToString();
                 evt.RemovePropertyIfPresent( "SourceContext" );
 
-                var message = evt.RenderMessage().Replace( "{domain}", "" ).Trim();
-                domain = domain.Replace( "\"", "" );
+                var message = evt.RenderMessage();
+                category = category.Replace( "\"", "" );
 
                 return new RockLogEvent
                 {
                     DateTime = evt.Timestamp.DateTime.ToLocalTime(),
                     Exception = evt.Exception,
-                    Level = GetRockLogLevelFromSerilogLevel( evt.Level ),
-                    Domain = domain,
+                    LogLevel = GetRockLogLevelFromSerilogLevel( evt.Level ),
+                    Category = category,
                     Message = message
                 };
             }

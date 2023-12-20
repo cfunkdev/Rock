@@ -16,6 +16,7 @@
 //
 using System;
 using System.Collections.Generic;
+
 using Rock.SystemKey;
 
 namespace Rock.Logging
@@ -28,7 +29,6 @@ namespace Rock.Logging
     /// <seealso cref="Rock.Logging.IRockLogConfiguration" />
     internal class RockLogConfiguration : IRockLogConfiguration
     {
-        private RockLogLevel _logLevel;
         /// <summary>
         /// Gets or sets the log level.
         /// </summary>
@@ -37,15 +37,8 @@ namespace Rock.Logging
         /// </value>
         public RockLogLevel LogLevel
         {
-            get
-            {
-                UpdateConfigIfRequired();
-                return _logLevel;
-            }
-            set
-            {
-                _logLevel = value;
-            }
+            get => RockLogLevel.Info;
+            set { }
         }
 
         private int _maxFileSize;
@@ -88,7 +81,6 @@ namespace Rock.Logging
             }
         }
 
-        private List<string> _domainsToLog;
         /// <summary>
         /// Gets or sets the domains to log.
         /// </summary>
@@ -97,15 +89,8 @@ namespace Rock.Logging
         /// </value>
         public List<string> DomainsToLog
         {
-            get
-            {
-                UpdateConfigIfRequired();
-                return _domainsToLog;
-            }
-            set
-            {
-                _domainsToLog = value;
-            }
+            get => new List<string>();
+            set { }
         }
 
         /// <summary>
@@ -138,17 +123,13 @@ namespace Rock.Logging
 
             if ( rockSettings == null )
             {
-                LogLevel = RockLogLevel.Off;
                 NumberOfLogFiles = 20;
                 MaxFileSize = 20;
-                DomainsToLog = new List<string>();
             }
             else
             {
-                LogLevel = rockSettings.LogLevel;
                 NumberOfLogFiles = Math.Max( rockSettings.NumberOfLogFiles, 1 );
                 MaxFileSize = Math.Max( rockSettings.MaxFileSize, 1 );
-                DomainsToLog = rockSettings.DomainsToLog;
             }
 
             LogPath = System.IO.Path.Combine( AppDomain.CurrentDomain.BaseDirectory, "App_Data\\Logs\\Rock.log" );
