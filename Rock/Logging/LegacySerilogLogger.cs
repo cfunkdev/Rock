@@ -16,13 +16,8 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 using Microsoft.Extensions.Logging;
-
-using Rock.Model;
-using Serilog;
-using Serilog.Formatting.Compact;
 
 namespace Rock.Logging
 {
@@ -32,11 +27,11 @@ namespace Rock.Logging
     /// future if required.
     /// </summary>
     /// <seealso cref="Rock.Logging.IRockLogger" />
-    internal class RockLoggerSerilog : IRockLogger
+    [Obsolete( "This will be removed in the future." )]
+    [RockObsolete( "1.17" )]
+    internal class LegacySerilogLogger : IRockLogger
     {
         private const string DEFAULT_DOMAIN = "OTHER";
-        private readonly string _rockLogDirectory;
-        private readonly string _searchPattern;
 
         /// <summary>
         /// Gets the log configuration.
@@ -44,41 +39,16 @@ namespace Rock.Logging
         /// <value>
         /// The log configuration.
         /// </value>
-        public IRockLogConfiguration LogConfiguration { get; private set; }
+        public IRockLogConfiguration LogConfiguration { get; } = new RockLogConfiguration();
+
+        /// <inheritdoc/>
+        public List<string> LogFiles => new List<string>();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RockLoggerSerilog"/> class.
+        /// Initializes a new instance of the <see cref="LegacySerilogLogger"/> class.
         /// </summary>
-        /// <param name="rockLogConfiguration">The rock log configuration.</param>
-        public RockLoggerSerilog( IRockLogConfiguration rockLogConfiguration )
+        public LegacySerilogLogger()
         {
-            LogConfiguration = rockLogConfiguration;
-            LoadConfiguration( LogConfiguration );
-
-            _rockLogDirectory = System.IO.Path.GetFullPath( System.IO.Path.GetDirectoryName( LogConfiguration.LogPath ) );
-
-            _searchPattern = System.IO.Path.GetFileNameWithoutExtension( LogConfiguration.LogPath ) +
-                                "*" +
-                                System.IO.Path.GetExtension( LogConfiguration.LogPath );
-        }
-
-        /// <summary>
-        /// Gets the log files.
-        /// </summary>
-        /// <value>
-        /// The log files.
-        /// </value>
-        public List<string> LogFiles
-        {
-            get
-            {
-                if ( !System.IO.Directory.Exists( _rockLogDirectory ) )
-                {
-                    return new List<string>();
-                }
-
-                return System.IO.Directory.GetFiles( _rockLogDirectory, _searchPattern ).OrderByDescending( s => s ).ToList();
-            }
         }
 
         /// <summary>
@@ -95,24 +65,6 @@ namespace Rock.Logging
         /// </summary>
         public void Delete()
         {
-            if ( !System.IO.Directory.Exists( _rockLogDirectory ) )
-            {
-                return;
-            }
-
-            foreach ( var file in LogFiles )
-            {
-                try
-                {
-                    System.IO.File.Delete( file );
-                }
-                catch ( Exception ex )
-                {
-                    // If you get an exception it is probably because the file is in use
-                    // and we can't delete it. So just move on.
-                    ExceptionLogService.LogException( ex );
-                }
-            }
         }
 
         #region WriteToLog Methods
@@ -757,36 +709,11 @@ namespace Rock.Logging
             }
         }
 
-        private void LoadConfiguration( IRockLogConfiguration rockLogConfiguration )
-        {
-            var logger = new LoggerConfiguration()
-                 .MinimumLevel
-                 .Verbose()
-                 .WriteTo
-                 .File( new CompactJsonFormatter(),
-                     rockLogConfiguration.LogPath,
-                     rollingInterval: RollingInterval.Infinite,
-                     buffered: true,
-                     shared: false,
-                     flushToDiskInterval: TimeSpan.FromSeconds( 10 ),
-                     retainedFileCountLimit: rockLogConfiguration.NumberOfLogFiles,
-                     rollOnFileSizeLimit: true,
-                     fileSizeLimitBytes: rockLogConfiguration.MaxFileSize * 1024 * 1024 )
-                 .CreateLogger();
-
-            RockLogger.SinkWrapper.Logger = logger;
-        }
-
         /// <summary>
         /// Reloads the configuration.
         /// </summary>
         public void ReloadConfiguration()
         {
-            Close();
-
-            // The ctor loads up all the settings from the DB.
-            LogConfiguration = new RockLogConfiguration();
-            LoadConfiguration( LogConfiguration );
         }
 
         /// <summary>

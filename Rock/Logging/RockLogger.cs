@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -28,8 +29,7 @@ using Rock.Observability;
 using Rock.SystemKey;
 
 using Serilog;
-using Serilog.Core;
-using Serilog.Events;
+using Serilog.Formatting.Compact;
 
 namespace Rock.Logging
 {
@@ -38,8 +38,6 @@ namespace Rock.Logging
     /// </summary>
     public static class RockLogger
     {
-        private static IRockLogger _log;
-
         private static readonly ServiceProvider _serviceProvider;
 
         private static readonly DynamicConfigurationProvider _standardConfigurationProvider;
@@ -52,18 +50,9 @@ namespace Rock.Logging
         /// <value>
         /// The log.
         /// </value>
-        public static IRockLogger Log
-        {
-            get
-            {
-                if ( _log == null )
-                {
-                    // In the future the RockLogConfiguration could be gotten via dependency injection, but not today.
-                    _log = new RockLoggerSerilog( new RockLogConfiguration() );
-                }
-                return _log;
-            }
-        }
+        [Obsolete( "This is not used and will be removed in the future." )]
+        [RockObsolete( "1.17" )]
+        public static IRockLogger Log { get; } = new LegacySerilogLogger();
 
         /// <summary>
         /// Gets the logger factory currently associated with this application
@@ -78,9 +67,9 @@ namespace Rock.Logging
         /// <value>
         /// The log reader.
         /// </value>
-        public static IRockLogReader LogReader => new RockSerilogReader( Log );
-
-        //internal static SeriLoggerWrapper SerilogWrapper { get; } = new SeriLoggerWrapper();
+        [Obsolete( "This is not used and will be removed in the future." )]
+        [RockObsolete( "1.17" )]
+        public static IRockLogReader LogReader => new RockSerilogReader( GetSerilogConfiguration() );
 
         internal static SeriSinkWrapper SinkWrapper { get; } = new SeriSinkWrapper();
 
@@ -119,16 +108,6 @@ namespace Rock.Logging
             LoggerFactory = _serviceProvider.GetRequiredService<ILoggerFactory>();
         }
 
-        internal class SeriSinkWrapper : ILogEventSink
-        {
-            public Serilog.ILogger Logger { get; set; }
-
-            public void Emit( LogEvent logEvent )
-            {
-                Logger?.Write( logEvent );
-            }
-        }
-
         /// <summary>
         /// Gets the standard categories that have been defined in Rock.
         /// </summary>
@@ -151,20 +130,59 @@ namespace Rock.Logging
         public static void ReloadConfiguration()
         {
             var configuration = Rock.Web.SystemSettings.GetValue( SystemSetting.ROCK_LOGGING_SETTINGS ).FromJsonOrNull<RockLogSystemSettings>();
-            LoadConfiguration( configuration );
+
+            ReloadConfiguration( configuration, GetSerilogConfiguration() );
+        }
+
+        /// <summary>
+        /// Loads the configuration specified by the system settings.
+        /// </summary>
+        internal static SerilogConfiguration GetSerilogConfiguration()
+        {
+            var configuration = Rock.Web.SystemSettings.GetValue( SystemSetting.ROCK_LOGGING_SETTINGS ).FromJsonOrNull<RockLogSystemSettings>();
+            var serilogConfiguration = new SerilogConfiguration();
+
+            if ( configuration == null )
+            {
+                serilogConfiguration.NumberOfLogFiles = 20;
+                serilogConfiguration.MaxFileSize = 20;
+            }
+            else
+            {
+                serilogConfiguration.NumberOfLogFiles = Math.Max( configuration.NumberOfLogFiles, 1 );
+                serilogConfiguration.MaxFileSize = Math.Max( configuration.MaxFileSize, 1 );
+            }
+
+            serilogConfiguration.LogPath = System.IO.Path.Combine( AppDomain.CurrentDomain.BaseDirectory, "App_Data\\Logs\\Rock.log" );
+
+            return serilogConfiguration;
         }
 
         /// <summary>
         /// Loads the configuration specified by the system settings.
         /// </summary>
         /// <param name="configuration">The configuration object.</param>
-        private static void LoadConfiguration( RockLogSystemSettings configuration )
+        /// <param name="serilogConfiguration">The configuration for serilog.</param>
+        internal static void ReloadConfiguration( RockLogSystemSettings configuration, SerilogConfiguration serilogConfiguration )
+        {
+            LoadLogLevelConfiguration( configuration );
+
+            if ( configuration.IsLocalLoggingEnabled )
+            {
+                LoadSerilogConfiguration( serilogConfiguration );
+            }
+        }
+
+        /// <summary>
+        /// Loads the configuration specified by the system settings.
+        /// </summary>
+        /// <param name="configuration">The configuration object.</param>
+        private static void LoadLogLevelConfiguration( RockLogSystemSettings configuration )
         {
             var root = new Dictionary<string, object>();
             var logLevel = new Dictionary<string, string>();
 
             root.Add( "LogLevel", logLevel );
-
             logLevel.Add( "Default", "None" );
 
             if ( configuration.StandardCategories != null )
@@ -177,6 +195,31 @@ namespace Rock.Logging
 
             _standardConfigurationProvider.LoadFromJson( root.ToJson(), true );
             _advancedConfigurationProvider.LoadFromJson( configuration.AdvancedSettings, true );
+        }
+
+        /// <summary>
+        /// Loads the serilog configuration.
+        /// </summary>
+        /// <param name="configuration">The configuration.</param>
+        private static void LoadSerilogConfiguration( SerilogConfiguration configuration )
+        {
+            // Configure serilogger.
+            var serilogger = new LoggerConfiguration()
+                 .MinimumLevel
+                 .Verbose()
+                 .WriteTo
+                 .File( new CompactJsonFormatter(),
+                     configuration.LogPath,
+                     rollingInterval: RollingInterval.Infinite,
+                     buffered: true,
+                     shared: false,
+                     flushToDiskInterval: TimeSpan.FromSeconds( 10 ),
+                     retainedFileCountLimit: configuration.NumberOfLogFiles,
+                     rollOnFileSizeLimit: true,
+                     fileSizeLimitBytes: configuration.MaxFileSize * 1024 * 1024 )
+                 .CreateLogger();
+
+            SinkWrapper.Logger = serilogger;
         }
     }
 }

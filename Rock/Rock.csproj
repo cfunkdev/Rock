@@ -1054,6 +1054,8 @@
     <Compile Include="Logging\DynamicConfigurationProvider.cs" />
     <Compile Include="Logging\RockJobLogger.cs" />
     <Compile Include="Logging\RockLoggingCategoryAttribute.cs" />
+    <Compile Include="Logging\SerilogConfiguration.cs" />
+    <Compile Include="Logging\SeriSinkWrapper.cs" />
     <Compile Include="Model\CMS\AdaptiveMessageAdaptationSegment\AdaptiveMessageAdaptationSegment.cs" />
     <Compile Include="Model\CMS\AdaptiveMessageAdaptation\AdaptiveMessageAdaptation.cs" />
     <Compile Include="Model\CMS\AdaptiveMessageAdaptation\AdaptiveMessageAdaptation.Logic.cs" />
@@ -2168,7 +2170,7 @@
     <Compile Include="Logging\IRockLogConfiguration.cs" />
     <Compile Include="Logging\IRockLogger.cs" />
     <Compile Include="Logging\RockLogDomains.cs" />
-    <Compile Include="Logging\RockLoggerSerilog.cs" />
+    <Compile Include="Logging\LegacySerilogLogger.cs" />
     <Compile Include="Logging\RockLogger.cs" />
     <Compile Include="Logging\RockLogConfiguration.cs" />
     <Compile Include="Web\Cache\NonEntities\DbCommandObservabilityCache.cs" />

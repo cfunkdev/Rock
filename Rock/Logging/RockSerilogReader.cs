@@ -39,8 +39,9 @@ namespace Rock.Logging
     /// <seealso cref="Rock.Logging.IRockLogReader" />
     internal class RockSerilogReader : IRockLogReader
     {
-        private readonly IRockLogger _rockLogger;
         private readonly JsonSerializer _jsonSerializer;
+        private readonly string _rockLogDirectory;
+        private readonly string _searchPattern;
 
         private int _malformedLogEventCount = 0;
 
@@ -61,16 +62,61 @@ namespace Rock.Logging
         /// <summary>
         /// Initializes a new instance of the <see cref="RockSerilogReader"/> class.
         /// </summary>
-        /// <param name="logger">The logger.</param>
-        public RockSerilogReader( IRockLogger logger )
+        /// <param name="configuration">The configuration for Serilog.</param>
+        public RockSerilogReader( SerilogConfiguration configuration )
         {
-            _rockLogger = logger;
-
             _jsonSerializer = JsonSerializer.Create( new JsonSerializerSettings
             {
                 DateParseHandling = DateParseHandling.None,
                 Culture = CultureInfo.InvariantCulture
             } );
+
+            _rockLogDirectory = Path.GetFullPath( Path.GetDirectoryName( configuration.LogPath ) );
+
+            _searchPattern = Path.GetFileNameWithoutExtension( configuration.LogPath ) +
+                                "*" +
+                                Path.GetExtension( configuration.LogPath );
+        }
+
+        /// <summary>
+        /// Gets the log files.
+        /// </summary>
+        /// <value>
+        /// The log files.
+        /// </value>
+        internal List<string> GetLogFiles()
+        {
+            if ( !Directory.Exists( _rockLogDirectory ) )
+            {
+                return new List<string>();
+            }
+
+            return Directory.GetFiles( _rockLogDirectory, _searchPattern ).OrderByDescending( s => s ).ToList();
+        }
+
+        /// <summary>
+        /// Deletes all of the log files.
+        /// </summary>
+        public void Delete()
+        {
+            if ( !Directory.Exists( _rockLogDirectory ) )
+            {
+                return;
+            }
+
+            foreach ( var file in GetLogFiles() )
+            {
+                try
+                {
+                    System.IO.File.Delete( file );
+                }
+                catch ( Exception ex )
+                {
+                    // If you get an exception it is probably because the file is in use
+                    // and we can't delete it. So just move on.
+                    ExceptionLogService.LogException( ex );
+                }
+            }
         }
 
         /// <summary>
@@ -108,7 +154,7 @@ namespace Rock.Logging
 
         private string[] GetLogLines( int startIndex, int count )
         {
-            var rockLogFiles = _rockLogger.LogFiles;
+            var rockLogFiles = GetLogFiles();
             if ( rockLogFiles.Count == 0 )
             {
                 return new string[] { };
@@ -161,7 +207,7 @@ namespace Rock.Logging
 
         private int GetRockLogRecordCount()
         {
-            var rockLogFiles = _rockLogger.LogFiles;
+            var rockLogFiles = GetLogFiles();
             if ( rockLogFiles.Count == 0 )
             {
                 return 0;
