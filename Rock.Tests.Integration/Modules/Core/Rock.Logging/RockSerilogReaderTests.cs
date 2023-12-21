@@ -20,12 +20,16 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Rock.Logging;
 using Rock.Tests.Shared;
 
+using Serilog.Events;
+
 namespace Rock.Tests.Integration.Core.Logging
 {
     [TestClass]
     public class RockSerilogReaderTests
     {
-        private readonly string LogFolder = $"\\logs\\{Guid.NewGuid()}";
+        private readonly string LogFolder = $"TestData\\logs\\{Guid.NewGuid()}";
+
+        private const string TestCategory = "TestCategory";
 
         [TestCleanup]
         public void Cleanup()
@@ -43,7 +47,7 @@ namespace Rock.Tests.Integration.Core.Logging
                 LogPath = $"{LogFolder}\\{Guid.NewGuid()}.log"
             };
 
-            var rockReader = new Rock.Logging.RockSerilogReader( config );
+            var rockReader = new RockSerilogReader( config );
 
             var currentPageIndex = 0;
             var pageSize = 1000;
@@ -64,7 +68,7 @@ namespace Rock.Tests.Integration.Core.Logging
 
             var logger = RockLogger.CreateSerilogLogger( config );
 
-            logger.Information( "Test" );
+            logger.ForContext( "SourceContext", TestCategory ).Information( "Test" );
             logger.Dispose();
 
             System.IO.File.Delete( config.LogPath );
@@ -89,8 +93,8 @@ namespace Rock.Tests.Integration.Core.Logging
             };
 
             var logger = RockLogger.CreateSerilogLogger( config );
-
-            var expectedLogs = CreateLogFiles( logger, config );
+            var expectedLogs = CreateLogFiles( logger.ForContext( "SourceContext", TestCategory ), config );
+            logger.Dispose();
 
             var rockReader = new RockSerilogReader( config );
 
@@ -108,8 +112,8 @@ namespace Rock.Tests.Integration.Core.Logging
             };
 
             var logger = RockLogger.CreateSerilogLogger( config );
-
-            var expectedLogs = CreateLogFiles( logger, config );
+            var expectedLogs = CreateLogFiles( logger.ForContext( "SourceContext", TestCategory ), config );
+            logger.Dispose();
 
             var rockReader = new RockSerilogReader( config );
 
@@ -145,14 +149,13 @@ namespace Rock.Tests.Integration.Core.Logging
             };
 
             var logger = RockLogger.CreateSerilogLogger( config );
-
-            var expectedLogs = CreateLogFiles( logger, config );
+            CreateLogFiles( logger.ForContext( "SourceContext", TestCategory ), config );
+            logger.Dispose();
 
             var rockReader = new RockSerilogReader( config );
 
             var currentPageIndex = 19000;
             var pageSize = 1000;
-            var nextPageIndex = currentPageIndex + pageSize;
 
             var results = rockReader.GetEvents( currentPageIndex, pageSize );
             Assert.That.AreEqual( 0, results.Count );
@@ -169,21 +172,20 @@ namespace Rock.Tests.Integration.Core.Logging
             };
 
             var logger = RockLogger.CreateSerilogLogger( config );
-
-            var expectedLogs = CreateLogFiles( logger, config );
+            var expectedLogs = CreateLogFiles( logger.ForContext( "SourceContext", TestCategory ), config );
+            logger.Dispose();
 
             var rockReader = new RockSerilogReader( config );
 
             var currentPageIndex = 0;
             var pageSize = 19000;
-            var nextPageIndex = currentPageIndex + pageSize;
 
             var results = rockReader.GetEvents( currentPageIndex, pageSize );
             Assert.That.AreEqual( expectedLogs.Count, results.Count );
         }
 
         [TestMethod]
-        public void RockLogReaderShouldHandleDomainCorrectly()
+        public void RockLogReaderShouldHandleCategoryCorrectly()
         {
             var config = new SerilogConfiguration
             {
@@ -193,16 +195,17 @@ namespace Rock.Tests.Integration.Core.Logging
             };
 
             var logger = RockLogger.CreateSerilogLogger( config );
-            var expectedMessage = "This is a test.";
-            var expectedCategory = "TestCategory";
 
-            logger.Information( expectedCategory, expectedMessage );
+            var expectedMessage = "This is a test.";
+            var expectedCategory = TestCategory;
+
+            logger.ForContext( "SourceContext", TestCategory ).Information( expectedMessage );
+            logger.Dispose();
 
             var rockReader = new RockSerilogReader( config );
 
             var currentPageIndex = 0;
             var pageSize = 100;
-            var nextPageIndex = currentPageIndex + pageSize;
 
             var results = rockReader.GetEvents( currentPageIndex, pageSize );
             Assert.That.AreEqual( 1, results.Count );
@@ -210,18 +213,28 @@ namespace Rock.Tests.Integration.Core.Logging
             Assert.That.AreEqual( expectedCategory, results[0].Category );
         }
 
-        private List<string> CreateLogFiles( Serilog.Core.Logger logger, SerilogConfiguration config )
+        private List<string> CreateLogFiles( Serilog.ILogger logger, SerilogConfiguration config )
         {
             var maxByteCount = config.MaxFileSize * 1024 * 1024 * ( config.NumberOfLogFiles - 1 );
             var currentByteCount = 0;
-            var logRecordSize = Encoding.ASCII.GetByteCount( "{\"@t\":\"0000-00-00T00:00:00.0000000Z\",\"@mt\":\"{domain} Test - 00000000-0000-0000-0000-000000000000\",\"domain\":\"OTHER\"}" );
+            var logRecordSize = Encoding.ASCII.GetByteCount( $"{{\"@t\":\"0000-00-00T00:00:00.0000000Z\",\"@mt\":\"Test - 00000000-0000-0000-0000-000000000000\",\"SourceContext\":\"{TestCategory}\"}}" );
             var expectedLogs = new List<string>();
 
             while ( currentByteCount < maxByteCount )
             {
                 var guid = Guid.NewGuid();
-                var expectedLogMessage = $"Test - {guid}";
-                logger.Information( RockLogDomains.Other, expectedLogMessage );
+                //var logEvent = new LogEvent( DateTimeOffset.Now,
+                //    LogEventLevel.Information,
+                //    null,
+                //    new MessageTemplate( $"Test - {guid}", new Serilog.Parsing.MessageTemplateToken[0] ),
+                //    new[]
+                //    {
+                //        new LogEventProperty( "SourceContext", new ScalarValue( TestCategory ) )
+                //    } );
+
+                //logger.Write( logEvent );
+                logger.Information( $"Test - {guid}" );
+
                 expectedLogs.Add( guid.ToString() );
                 currentByteCount += logRecordSize;
             }

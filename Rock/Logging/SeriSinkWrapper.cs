@@ -14,6 +14,8 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
+
 using Serilog.Core;
 using Serilog.Events;
 
@@ -25,16 +27,30 @@ namespace Rock.Logging
     /// </summary>
     internal class SeriSinkWrapper : ILogEventSink
     {
-        /// <summary>
-        /// Gets or sets the current logger.
-        /// </summary>
-        /// <value>The current logger.</value>
-        public Serilog.ILogger Logger { get; set; }
+        private readonly object _lockSync = new object();
+
+        private Serilog.ILogger _logger;
 
         /// <inheritdoc/>
         public void Emit( LogEvent logEvent )
         {
-            Logger?.Write( logEvent );
+            lock (_lockSync )
+            {
+                _logger?.Write( logEvent );
+            }
+        }
+
+        public void SetLogger( Serilog.ILogger logger )
+        {
+            lock ( _lockSync )
+            {
+                if ( _logger is IDisposable disposable )
+                {
+                    disposable.Dispose();
+                }
+
+                _logger = logger;
+            }
         }
     }
 }

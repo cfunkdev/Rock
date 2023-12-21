@@ -23,6 +23,7 @@ using System.Text;
 
 using Newtonsoft.Json;
 
+using Rock.Attribute;
 using Rock.Model;
 using Rock.Utility.ExtensionMethods;
 
@@ -37,7 +38,8 @@ namespace Rock.Logging
     /// point in time.
     /// </summary>
     /// <seealso cref="Rock.Logging.IRockLogReader" />
-    internal class RockSerilogReader : IRockLogReader
+    [RockInternal( "1.17", true )]
+    public class RockSerilogReader : IRockLogReader
     {
         private readonly JsonSerializer _jsonSerializer;
         private readonly string _rockLogDirectory;
@@ -63,7 +65,7 @@ namespace Rock.Logging
         /// Initializes a new instance of the <see cref="RockSerilogReader"/> class.
         /// </summary>
         /// <param name="configuration">The configuration for Serilog.</param>
-        public RockSerilogReader( SerilogConfiguration configuration )
+        internal RockSerilogReader( SerilogConfiguration configuration )
         {
             _jsonSerializer = JsonSerializer.Create( new JsonSerializerSettings
             {
@@ -84,7 +86,7 @@ namespace Rock.Logging
         /// <value>
         /// The log files.
         /// </value>
-        internal List<string> GetLogFiles()
+        public List<string> GetLogFiles()
         {
             if ( !Directory.Exists( _rockLogDirectory ) )
             {
