@@ -286,8 +286,8 @@ namespace Rock.Observability
                 var resourceBuilder = ResourceBuilder.CreateDefault()
                     .AddService( serviceName: ServiceName, serviceVersion: "1.0.0", serviceInstanceId: instanceId );
 
+                cfg.IncludeFormattedMessage = true;
                 cfg.SetResourceBuilder( resourceBuilder );
-
                 cfg.AddProcessor( new BatchLogRecordExportProcessor( _exporterWrapper ) );
             } );
         }

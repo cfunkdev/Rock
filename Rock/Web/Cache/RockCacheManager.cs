@@ -20,6 +20,8 @@ using System.Collections.Generic;
 using CacheManager.Core;
 using CacheManager.Core.Internal;
 
+using Microsoft.Extensions.Logging;
+
 using Rock.Bus;
 using Rock.Bus.Message;
 using Rock.Logging;
@@ -43,6 +45,8 @@ namespace Rock.Web.Cache
         private static readonly object _obj = new object();
 
         private static BaseCacheManager<T> _cacheManager;
+
+        private ILogger Logger { get; } = RockLogger.LoggerFactory.CreateLogger<RockCacheManager<T>>();
 
         static RockCacheManager()
         {
@@ -238,7 +242,7 @@ namespace Rock.Web.Cache
 
             // This is somewhat temporary. In the future this should be updated
             // to use it's own domain.
-            RockLogger.Log.WriteToLog( RockLogLevel.Debug, RockLogDomains.Other, $"Cache was cleared for {typeof(T).Name}. StackTrace: {Environment.StackTrace}" );
+            Logger.LogDebug( $"Cache was cleared for {typeof(T).Name}. StackTrace: {Environment.StackTrace}" );
         }
 
         /// <summary>
@@ -251,7 +255,7 @@ namespace Rock.Web.Cache
             {
                 // We already took care of Clearing the cache for our instance, so
                 // we can ignore this message.
-                RockLogger.Log.Debug( RockLogDomains.Bus, $"Cache ClearMessage was from ourselves( {message.SenderNodeName} ). Skipping. {message.ToDebugString()}." );
+                Logger.LogDebug( $"Cache ClearMessage was from ourselves( {message.SenderNodeName} ). Skipping. {message.ToDebugString()}." );
                 return;
             }
 
@@ -307,7 +311,7 @@ namespace Rock.Web.Cache
             {
                 // We already took care of Clearing the cache for our instance, so
                 // we can ignore this message.
-                RockLogger.Log.Debug( RockLogDomains.Bus, $"Cache RemoveMessage was from ourselves( {message.SenderNodeName} ). Skipping. {message.ToDebugString()}." );
+                Logger.LogDebug( $"Cache RemoveMessage was from ourselves( {message.SenderNodeName} ). Skipping. {message.ToDebugString()}." );
                 return;
             }
 
