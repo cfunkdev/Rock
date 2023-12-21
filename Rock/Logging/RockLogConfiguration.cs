@@ -27,6 +27,8 @@ namespace Rock.Logging
     /// global attribute.
     /// </summary>
     /// <seealso cref="Rock.Logging.IRockLogConfiguration" />
+    [Obsolete( "This is not used and will be removed in the future." )]
+    [RockObsolete( "1.17" )]
     internal class RockLogConfiguration : IRockLogConfiguration
     {
         /// <summary>

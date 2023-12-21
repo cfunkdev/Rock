@@ -23,6 +23,8 @@ namespace Rock.Logging
     /// <summary>
     /// Interface that is used be the RockLogger to store configuration data.
     /// </summary>
+    [Obsolete( "This is not used and will be removed in the future." )]
+    [RockObsolete( "1.17" )]
     public interface IRockLogConfiguration
     {
         /// <summary>
