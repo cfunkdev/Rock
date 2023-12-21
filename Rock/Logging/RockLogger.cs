@@ -38,11 +38,11 @@ namespace Rock.Logging
     /// </summary>
     public static class RockLogger
     {
-        private static readonly ServiceProvider _serviceProvider;
+        private static ServiceProvider _serviceProvider;
 
-        private static readonly DynamicConfigurationProvider _standardConfigurationProvider;
+        private static readonly DynamicConfigurationProvider _standardConfigurationProvider = new DynamicConfigurationProvider();
 
-        private static readonly DynamicConfigurationProvider _advancedConfigurationProvider;
+        private static readonly DynamicConfigurationProvider _advancedConfigurationProvider = new DynamicConfigurationProvider();
 
         /// <summary>
         /// Gets the logger with logging methods.
@@ -67,21 +67,15 @@ namespace Rock.Logging
         /// <value>
         /// The log reader.
         /// </value>
-        [Obsolete( "This is not used and will be removed in the future." )]
-        [RockObsolete( "1.17" )]
         public static IRockLogReader LogReader => new RockSerilogReader( GetSerilogConfiguration() );
 
         internal static SeriSinkWrapper SinkWrapper { get; } = new SeriSinkWrapper();
 
-        static RockLogger()
+        internal static void Initialize()
         {
-            var serviceCollection = new ServiceCollection();
-
-            _standardConfigurationProvider = new DynamicConfigurationProvider();
             _standardConfigurationProvider.Set( "LogLevel:Default", "None" );
 
-            _advancedConfigurationProvider = new DynamicConfigurationProvider();
-
+            var serviceCollection = new ServiceCollection();
             var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
                 .Add( _standardConfigurationProvider )
                 .Add( _advancedConfigurationProvider )
@@ -169,7 +163,7 @@ namespace Rock.Logging
 
             if ( configuration.IsLocalLoggingEnabled )
             {
-                LoadSerilogConfiguration( serilogConfiguration );
+                SinkWrapper.SetLogger( CreateSerilogLogger( serilogConfiguration ) );
             }
         }
 
@@ -221,12 +215,12 @@ namespace Rock.Logging
         }
 
         /// <summary>
-        /// Loads the serilog configuration.
+        /// Recycles the serilog writer which frees up any old files.
         /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        private static void LoadSerilogConfiguration( SerilogConfiguration configuration )
+        [RockInternal( "1.17", true )]
+        public static void RecycleSerilog()
         {
-            SinkWrapper.Logger = CreateSerilogLogger( configuration );
+            SinkWrapper.SetLogger( CreateSerilogLogger( GetSerilogConfiguration() ) );
         }
     }
 }

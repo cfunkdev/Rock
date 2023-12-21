@@ -46,7 +46,9 @@ namespace Rock.Web.Cache
 
         private static BaseCacheManager<T> _cacheManager;
 
-        private ILogger Logger { get; } = RockLogger.LoggerFactory.CreateLogger<RockCacheManager<T>>();
+        private readonly Lazy<ILogger> _logger;
+
+        private ILogger Logger => _logger.Value;
 
         static RockCacheManager()
         {
@@ -58,6 +60,7 @@ namespace Rock.Web.Cache
         /// </summary>
         private RockCacheManager()
         {
+            _logger = new Lazy<ILogger>( () => RockLogger.LoggerFactory.CreateLogger<RockCacheManager<T>>() );
         }
 
         /// <summary>

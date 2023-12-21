@@ -110,7 +110,8 @@ namespace RockWeb.Blocks.Administration
         {
             nbLoggingMessage.Visible = true;
 
-            RockLogger.Log.Delete();
+            RockLogger.RecycleSerilog();
+            ( RockLogger.LogReader as RockSerilogReader ).Delete();
 
             this.NavigateToCurrentPage();
         }

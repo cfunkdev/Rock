@@ -140,6 +140,7 @@ namespace Rock.WebStartup
 
             // Initialize the logger after the database.
             LogStartupMessage( "Initializing RockLogger" );
+            RockLogger.Initialize();
             RockLogger.ReloadConfiguration();
             ShowDebugTimingMessage( "RockLogger" );
 
