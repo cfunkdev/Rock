@@ -92,19 +92,6 @@ public abstract class TwilioDefaultResponseAsync : IAsyncResult
     }
 
     /// <summary>
-    /// The enable logging
-    /// </summary>
-    [Obsolete("The RockLogger checks if logging is enabled for Twilio when logging a message. If the logging status needs to be checked before creating a message use Rock.Logging.RockLogger.Log.ShouldLogEntry instead.")]
-    [RockObsolete("1.13")]
-    public bool EnableLogging
-    {
-        get
-        {
-            return RockLogger.Log.ShouldLogEntry( RockLogLevel.Debug, RockLogDomains.Communications );
-        }
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="TwilioDefaultResponseAsync"/> class.
     /// </summary>
     /// <param name="callback">The callback.</param>

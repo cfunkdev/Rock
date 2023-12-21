@@ -52,7 +52,10 @@ namespace Rock.Logging
         /// </value>
         [Obsolete( "This is not used and will be removed in the future." )]
         [RockObsolete( "1.17" )]
-        public static IRockLogger Log { get; } = new LegacySerilogLogger();
+        public static IRockLogger Log => _log.Value;
+#pragma warning disable CS0618 // Type or member is obsolete
+        private static readonly Lazy<IRockLogger> _log = new Lazy<IRockLogger>( () => new LegacySerilogLogger() );
+#pragma warning restore CS0618 // Type or member is obsolete
 
         /// <summary>
         /// Gets the logger factory currently associated with this application
