@@ -30,6 +30,7 @@ namespace Rock.Field.Types
     /// General purpose picker field type that allows one or more items to
     /// be picked by the person.
     /// </summary>
+    [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
     [ClientFieldTypeGuid( "b69b5a61-6fcd-4e3b-bb45-5f6802514953" )]
     public abstract class UniversalItemPickerFieldType : UniversalItemFieldType
     {
@@ -354,7 +355,6 @@ namespace Rock.Field.Types
     [BooleanField( "As List", Key = "AsList", Order = 1 )]
     [IntegerField( "Column Count", Key = "ColumnCount", IsRequired = false, Order = 2 )]
     [BooleanField( "LongList", Key = "LongList", Order = 3 )]
-    [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
     [Rock.SystemGuid.FieldTypeGuid( "47622385-3fd7-4344-80f4-0e51890d8489" )]
     public class DanielTestFieldType : UniversalItemPickerFieldType
     {
@@ -416,7 +416,6 @@ namespace Rock.Field.Types
     [BooleanField( "As List", Key = "AsList", Order = 1 )]
     [IntegerField( "Column Count", Key = "ColumnCount", IsRequired = false, Order = 2 )]
     [BooleanField( "LongList", Key = "LongList", Order = 3 )]
-    [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
     [Rock.SystemGuid.FieldTypeGuid( "5ec8c7f9-a2d4-4760-a272-9fbe259e45b9" )]
     public class DanielMultiTestFieldType : UniversalItemPickerFieldType
     {

@@ -337,9 +337,9 @@ namespace Rock.Web.UI.Controls
                     _hfItemId.Value = Constants.None.IdValue;
                 }
 
-                if ( UseCategorySelection )
+                if ( UseCategorySelection && InternalCategoryPrefix.IsNotNullOrWhiteSpace() )
                 {
-                    return _hfItemId.Value.Replace( CategoryPrefix, string.Empty );
+                    return _hfItemId.Value.Replace( InternalCategoryPrefix, string.Empty );
                 }
 
                 return _hfItemId.Value;
@@ -357,7 +357,7 @@ namespace Rock.Web.UI.Controls
                 {
                     if ( UseCategorySelection )
                     {
-                        _hfItemId.Value = CategoryPrefix + value;
+                        _hfItemId.Value = InternalCategoryPrefix + value;
                     }
                     else
                     {
@@ -376,7 +376,7 @@ namespace Rock.Web.UI.Controls
         {
             return ( string.IsNullOrWhiteSpace( value )
                      || value == Constants.None.IdValue
-                     || ( this.UseCategorySelection && value == CategoryPrefix + Constants.None.IdValue ) );
+                     || ( this.UseCategorySelection && value == InternalCategoryPrefix + Constants.None.IdValue ) );
         }
 
         /// <summary>
@@ -395,9 +395,9 @@ namespace Rock.Web.UI.Controls
 
                 if ( !string.IsNullOrWhiteSpace( _hfItemId.Value ) )
                 {
-                    if ( UseCategorySelection )
+                    if ( UseCategorySelection && InternalCategoryPrefix.IsNotNullOrWhiteSpace() )
                     {
-                        ids.AddRange( _hfItemId.Value.Split( ',' ).Select( a => a.Replace( CategoryPrefix, string.Empty ) ) );
+                        ids.AddRange( _hfItemId.Value.Split( ',' ).Select( a => a.Replace( InternalCategoryPrefix, string.Empty ) ) );
                     }
                     else
                     {
@@ -416,7 +416,7 @@ namespace Rock.Web.UI.Controls
 
                 if ( UseCategorySelection )
                 {
-                    newValue = string.Join( ",", value.Select( a => CategoryPrefix + a ) );
+                    newValue = string.Join( ",", value.Select( a => InternalCategoryPrefix + a ) );
                 }
                 else
                 {
@@ -647,6 +647,8 @@ namespace Rock.Web.UI.Controls
         /// </value>
         public bool HidePickerLabel { get; set; }
 
+        internal virtual string InternalCategoryPrefix => CategoryPrefix;
+
         #endregion
 
         #region Fields
@@ -712,7 +714,7 @@ $@"Rock.controls.itemPicker.initialize({{
     restUrl: '{this.ResolveUrl( ItemRestUrl )}',
     allowMultiSelect: {this.AllowMultiSelect.ToString().ToLower()},
     allowCategorySelection: {this.UseCategorySelection.ToString().ToLower()},
-    categoryPrefix: '{( this.UseCategorySelection ? CategoryPrefix : "")}',
+    categoryPrefix: '{( this.UseCategorySelection ? InternalCategoryPrefix : "")}',
     defaultText: '{this.DefaultText}',
     restParams: $('#{_hfItemRestUrlExtraParams.ClientID}').val(),
     expandedIds: [{this.InitialItemParentIds}],

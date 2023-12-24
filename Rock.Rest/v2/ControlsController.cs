@@ -60,6 +60,83 @@ namespace Rock.Rest.v2
     [Rock.SystemGuid.RestControllerGuid( "815B51F0-B552-47FD-8915-C653EEDD5B67" )]
     public class ControlsController : ApiControllerBase
     {
+        [HttpPost]
+        [System.Web.Http.Route( "TestItems" )]
+        [Authenticate]
+        [Rock.SystemGuid.RestActionGuid( "9f2fa571-a704-4470-9e31-af4ea234d2e0" )]
+        public IHttpActionResult PostTestItems( [FromBody] UniversalTreeItemPickerOptionsBag options )
+        {
+            var categories = !options.ParentGuid.HasValue
+                ? CategoryCache.All().Where( c => !c.ParentCategoryId.HasValue ).ToList()
+                : CategoryCache.Get( options.ParentGuid.Value )?.Categories;
+
+            if ( categories == null )
+            {
+                return NotFound();
+            }
+
+            var paths = options.AutoExpandTargetGuids
+                ?.AsGuidList()
+                .Select( guid => GetPathToCategory( guid, options.ParentGuid ) )
+                .ToList()
+                ?? new List<List<Guid>>();
+
+            return Ok( LoadCategories( categories, paths ) );
+        }
+
+        private List<Guid> GetPathToCategory( Guid itemGuid, Guid? rootGuid )
+        {
+            var path = new List<Guid>();
+            var category = CategoryCache.Get( itemGuid );
+
+            for ( ; category != null && category.Guid != rootGuid; category = category.ParentCategory )
+            {
+                path.Insert( 0, category.Guid );
+            }
+
+            return path;
+        }
+
+        private List<TreeItemBag> LoadCategories( List<CategoryCache> categories, List<List<Guid>> paths )
+        {
+            var treeItems = categories
+                .Select( c =>
+                {
+                    var treeItem = new TreeItemBag
+                    {
+                        Value = c.Guid.ToString(),
+                        Text = c.Name,
+                        IsActive = true,
+                        HasChildren = c.Categories.Any(),
+                        IconCssClass = c.IconCssClass,
+                        IsFolder = true
+                    };
+
+                    var loadChildren = paths.Any( p => p.Contains( c.Guid ) );
+
+                    if ( loadChildren )
+                    {
+                        treeItem.Children = LoadCategories( c.Categories, paths );
+                    }
+
+                    return treeItem;
+                } )
+                .ToList();
+
+            return treeItems;
+        }
+
+        public class UniversalTreeItemPickerOptionsBag
+        {
+            public string SecurityGrantToken { get; set; }
+
+            public string Context { get; set; }
+
+            public Guid? ParentGuid { get; set; }
+
+            public List<string> AutoExpandTargetGuids { get; set; }
+        }
+
         #region Account Picker
 
         /// <summary>

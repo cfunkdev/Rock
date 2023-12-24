@@ -98,7 +98,6 @@
 
                     treeOptions.universalItemPicker = true;
                     treeOptions.expandedCategoryIds = (treeOptions.expandedCategoryIds || []).filter(id => id !== 0);
-                    treeOptions.selectedIds = ["3cb239e5-101b-4190-85c9-74c7edbf2a06"];
 
                     treeOptions.getNodes = (parentId, parentNode, selectedIds, toExpandIds) => {
                         const req = {
@@ -122,7 +121,6 @@
                                 function checkItemsForExpansion(items, path) {
                                     for (let i = 0; i < items.length; i++) {
                                         if (selectedIds.some(id => id === items[i].value)) {
-                                            console.log("found selected item", items[i].value, path);
                                             for (let p = 0; p < path.length; p++) {
                                                 if (!toExpandIds.includes(path[p])) {
                                                     toExpandIds.push(path[p]);
