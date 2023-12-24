@@ -76,6 +76,77 @@
                     treeOptions.expandedCategoryIds = $hfExpandedCategoryIds.val().split(',');
                 }
 
+                if (this.options.universalItemPicker) {
+                    function mapUniversalItems(data) {
+                        return data.map(item => {
+                            const treeItem = {
+                                id: item.value,
+                                name: item.text,
+                                iconCssClass: item.iconCssClass,
+                                hasChildren: item.hasChildren,
+                                isCategory: item.isFolder,
+                                childrenUrl: item.childrenUrl
+                            };
+
+                            if (Array.isArray(item.children)) {
+                                treeItem.children = mapUniversalItems(item.children);
+                            }
+
+                            return treeItem;
+                        });
+                    }
+
+                    treeOptions.universalItemPicker = true;
+                    treeOptions.expandedCategoryIds = (treeOptions.expandedCategoryIds || []).filter(id => id !== 0);
+                    treeOptions.selectedIds = ["3cb239e5-101b-4190-85c9-74c7edbf2a06"];
+
+                    treeOptions.getNodes = (parentId, parentNode, selectedIds, toExpandIds) => {
+                        const req = {
+                        };
+
+                        if (!parentId) {
+                            req.autoExpandTargetGuids = selectedIds;
+                        }
+                        else {
+                            req.parentGuid = parentId;
+                        }
+
+                        return $.ajax({
+                            method: 'POST',
+                            data: JSON.stringify(req),
+                            url: parentNode && parentNode.childrenUrl ? parentNode.childrenUrl : treeOptions.restUrl,
+                            dataType: 'json',
+                            contentType: 'application/json'
+                        })
+                            .then(data => {
+                                function checkItemsForExpansion(items, path) {
+                                    for (let i = 0; i < items.length; i++) {
+                                        if (selectedIds.some(id => id === items[i].value)) {
+                                            console.log("found selected item", items[i].value, path);
+                                            for (let p = 0; p < path.length; p++) {
+                                                if (!toExpandIds.includes(path[p])) {
+                                                    toExpandIds.push(path[p]);
+                                                }
+                                            }
+                                        }
+
+                                        if (Array.isArray(items[i].children)) {
+                                            checkItemsForExpansion(items[i].children, [...path, items[i].value]);
+                                        }
+                                    }
+                                }
+
+                                checkItemsForExpansion(data, []);
+
+                                return data;
+                            });
+                    };
+
+                    treeOptions.mapping = {
+                        mapData: mapUniversalItems
+                    };
+                }
+
                 $tree.rockTree(treeOptions);
                 this.updateScrollbar();
             },
@@ -248,6 +319,7 @@
             defaults: {
                 id: 0,
                 controlId: null,
+                universalItemPicker: false,
                 restUrl: null,
                 restParams: null,
                 allowCategorySelection: false,

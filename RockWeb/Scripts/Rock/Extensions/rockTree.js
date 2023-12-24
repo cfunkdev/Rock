@@ -177,6 +177,28 @@
                 // Wrapper function around jQuery.ajax. Appends a handler to databind the
                 // resulting JSON from the server and returns the promise
                 getNodes = function (parentId, parentNode) {
+                    if (self.options.getNodes) {
+                        self.clearError();
+
+                        return self.options
+                            .getNodes(parentId, parentNode, self.options.selectedIds, toExpandCategories)
+                            .done(data => {
+                                try {
+                                    self.dataBind(data, parentNode);
+                                }
+                                catch (e) {
+                                    dfd.reject(e);
+                                }
+
+                                self.$el.trigger('rockTree:fetchCompleted', [{ success: true, data: data }]);
+                            })
+                            .fail(function (jqXHR, textStatus, errorThrown) {
+                                self.renderError(jqXHR.responseJSON ? jqXHR.responseJSON.ExceptionMessage : errorThrown);
+
+                                self.$el.trigger('rockTree:fetchCompleted', [{ success: false, data: jqXHR }]);
+                            });
+                    }
+
                     var restUrl = self.options.restUrl;
 
                     // If the Tree Node we are loading has an EntityId attribute, use it to identify the associated Data Entity key - otherwise use the Tree Node identifier itself.
@@ -218,7 +240,8 @@
             if (this.options.restUrl) {
 
                 if ((this.options.expandedIds && typeof this.options.expandedIds.length === 'number') ||
-                    (this.options.expandedCategoryIds && typeof this.options.expandedCategoryIds.length === 'number')) {
+                    (this.options.expandedCategoryIds && typeof this.options.expandedCategoryIds.length === 'number') ||
+                    this.options.universalItemPicker) {
                     toExpandParentItems = this.options.expandedIds || [];
                     toExpandCategories = this.options.expandedCategoryIds || [];
                     categoryPrefix = this.options.categoryPrefix;
@@ -282,14 +305,16 @@
                                 // If we find the node, make sure it's expanded, and fetch its children
                                 currentCategoryNode.isOpen = true;
 
-                                // Queue up current node
-                                inProgress[currentCategoryId] = currentCategoryId;
-                                getNodes(currentCategoryId, currentCategoryNode).done(function () {
-                                    // Dequeue on completion
-                                    delete inProgress[currentCategoryId];
-                                    // And notify the Deferred of progress
-                                    dfd.notify();
-                                });
+                                if (!self.options.universalItemPicker || !currentCategoryNode.children) {
+                                    // Queue up current node
+                                    inProgress[currentCategoryId] = currentCategoryId;
+                                    getNodes(currentCategoryId, currentCategoryNode).done(function () {
+                                        // Dequeue on completion
+                                        delete inProgress[currentCategoryId];
+                                        // And notify the Deferred of progress
+                                        dfd.notify();
+                                    });
+                                }
                             }
                         }
                     });
