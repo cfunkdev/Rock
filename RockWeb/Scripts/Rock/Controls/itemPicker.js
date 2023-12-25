@@ -114,7 +114,7 @@
                         return $.ajax({
                             method: 'POST',
                             data: JSON.stringify(req),
-                            url: parentNode && parentNode.childrenUrl ? parentNode.childrenUrl : treeOptions.restUrl,
+                            url: treeOptions.restUrl,
                             dataType: 'json',
                             contentType: 'application/json'
                         })

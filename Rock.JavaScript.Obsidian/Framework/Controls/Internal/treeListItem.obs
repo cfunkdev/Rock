@@ -16,6 +16,7 @@
 <script setup lang="ts">
     import { computed, PropType, ref, watch } from "vue";
     import { TreeItemBag } from "@Obsidian/ViewModels/Utility/treeItemBag";
+    import { ITreeItemProvider } from "@Obsidian/Utility/treeItemProviders";
 
     const props = defineProps({
         modelValue: {
@@ -36,6 +37,10 @@
         disableFolderSelection: {
             type: Boolean as PropType<boolean>,
             default: false
+        },
+
+        provider: {
+            type: Object as PropType<ITreeItemProvider>
         },
 
         /**
@@ -182,6 +187,10 @@
      */
     function onSelect(): void {
         if (isFolder.value && props.disableFolderSelection) {
+            return;
+        }
+
+        if (props.provider?.canSelectItem?.(props.item) === false) {
             return;
         }
 

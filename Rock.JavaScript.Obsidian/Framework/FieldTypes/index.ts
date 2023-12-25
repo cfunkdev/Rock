@@ -341,6 +341,9 @@ registerFieldType(FieldTypeGuids.TimeZone, new TimeZoneFieldType());
 import { UniversalItemPickerFieldType } from "./universalItemPickerField.partial";
 registerFieldType("b69b5a61-6fcd-4e3b-bb45-5f6802514953", new UniversalItemPickerFieldType());
 
+import { UniversalTreeItemPickerFieldType } from "./universalTreeItemPickerField.partial";
+registerFieldType("c7485f3f-0c10-4db6-9574-c10b195617e4", new UniversalTreeItemPickerFieldType());
+
 import { UrlLinkFieldType } from "./urlLinkField.partial";
 registerFieldType(FieldTypeGuids.UrlLink, new UrlLinkFieldType());
 

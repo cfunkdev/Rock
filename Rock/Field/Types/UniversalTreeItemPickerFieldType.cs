@@ -52,6 +52,8 @@ namespace Rock.Field.Types
             {
                 return new Dictionary<string, string>
                 {
+                    ["iconCssClass"] = GetItemIconCssClass( privateConfigurationValues ),
+                    ["rootRestUrl"] = GetRootRestUrl( privateConfigurationValues )
                 };
             }
 

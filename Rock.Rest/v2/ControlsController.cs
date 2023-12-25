@@ -111,7 +111,6 @@ namespace Rock.Rest.v2
                         IsActive = true,
                         HasChildren = c.Categories.Any(),
                         IconCssClass = c.IconCssClass,
-                        IsFolder = true,
                         IsSelectionDisabled = !c.ParentCategoryId.HasValue
                     };
 
