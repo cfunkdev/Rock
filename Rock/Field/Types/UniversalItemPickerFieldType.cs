@@ -362,16 +362,17 @@ namespace Rock.Field.Types
         protected override bool IsMultipleSelection => false;
 
         /// <inheritdoc/>
-        public override string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        protected override List<ListItemBag> GetItemBags( IEnumerable<string> values, Dictionary<string, string> privateConfigurationValues )
         {
-            if ( privateValue.IsNullOrWhiteSpace() )
-            {
-                return string.Empty;
-            }
+            var intValues = values.AsIntegerList();
 
-            var intValues = GetValueAsList( privateValue ).AsIntegerList();
-
-            return intValues.Select( value => $"Item {value}" ).JoinStrings( ", " );
+            return intValues
+                .Select( value => new ListItemBag
+                {
+                    Value = value.ToString(),
+                    Text = $"Item {value}"
+                } )
+                .ToList();
         }
 
         /// <inheritdoc/>
@@ -423,16 +424,17 @@ namespace Rock.Field.Types
         protected override bool IsMultipleSelection => true;
 
         /// <inheritdoc/>
-        public override string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        protected override List<ListItemBag> GetItemBags( IEnumerable<string> values, Dictionary<string, string> privateConfigurationValues )
         {
-            if ( privateValue.IsNullOrWhiteSpace() )
-            {
-                return string.Empty;
-            }
+            var intValues = values.AsIntegerList();
 
-            var intValues = GetValueAsList( privateValue ).AsIntegerList();
-
-            return intValues.Select( value => $"Item {value}" ).JoinStrings( ", " );
+            return intValues
+                .Select( value => new ListItemBag
+                {
+                    Value = value.ToString(),
+                    Text = $"Item {value}"
+                } )
+                .ToList();
         }
 
         /// <inheritdoc/>

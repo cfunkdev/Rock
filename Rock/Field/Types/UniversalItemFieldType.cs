@@ -89,12 +89,14 @@ namespace Rock.Field.Types
         }
 
         /// <summary>
-        /// Formats the value into a user-friendly string of plain text.
+        /// Gets the item bags for the values. If an item is not found
+        /// (for example, no longer exists), then it should not be included
+        /// in the returned list.
         /// </summary>
-        /// <param name="privateValue">The private (database) value.</param>
+        /// <param name="values">The individual values that should be retrieved.</param>
         /// <param name="privateConfigurationValues">The private (database) configuration values.</param>
-        /// <returns>A plain string of text.</returns>
-        public abstract string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues );
+        /// <returns>A list of <see cref="ListItemBag"/> objects that have the <see cref="ListItemBag.Value"/> and <see cref="ListItemBag.Text"/> properties filled in.</returns>
+        protected abstract List<ListItemBag> GetItemBags( IEnumerable<string> values, Dictionary<string, string> privateConfigurationValues );
 
         #endregion
 
@@ -268,31 +270,41 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override string GetTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
-            return GetItemTextValue( privateValue, privateConfigurationValues );
+            var values = GetValueAsList( privateValue );
+
+            if ( values.Count == 0 )
+            {
+                return string.Empty;
+            }
+
+            return GetItemBags( values, privateConfigurationValues )
+                ?.Select( b => b.Text )
+                .JoinStrings( ", " )
+                ?? string.Empty;
         }
 
         /// <inheritdoc/>
         public sealed override string GetCondensedTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
-            return GetItemTextValue( privateValue, privateConfigurationValues );
+            return GetTextValue( privateValue, privateConfigurationValues );
         }
 
         /// <inheritdoc/>
         public sealed override string GetHtmlValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
-            return GetItemTextValue( privateValue, privateConfigurationValues );
+            return GetTextValue( privateValue, privateConfigurationValues );
         }
 
         /// <inheritdoc/>
         public sealed override string GetCondensedHtmlValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
-            return GetItemTextValue( privateValue, privateConfigurationValues );
+            return GetTextValue( privateValue, privateConfigurationValues );
         }
 
         /// <inheritdoc/>
         public sealed override PersistedValues GetPersistedValues( string privateValue, Dictionary<string, string> privateConfigurationValues, IDictionary<string, object> cache )
         {
-            var textValue = GetItemTextValue( privateValue, privateConfigurationValues );
+            var textValue = GetTextValue( privateValue, privateConfigurationValues );
 
             return new PersistedValues
             {

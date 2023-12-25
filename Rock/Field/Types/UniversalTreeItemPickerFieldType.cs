@@ -60,26 +60,7 @@ namespace Rock.Field.Types
             return base.GetPublicConfigurationValues( privateConfigurationValues, usage, value );
         }
 
-        /// <inheritdoc/>
-        public sealed override string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
-        {
-            return GetSelectedItems( GetValueAsList( privateValue ), privateConfigurationValues )
-                ?.Select( b => b.Text )
-                .JoinStrings( ", " )
-                ?? string.Empty;
-        }
-
         #region Protected Methods
-
-        /// <summary>
-        /// Gets the items for the selected values. If an item is not found
-        /// (for example, no longer exists), then it should not be included
-        /// in the returned list.
-        /// </summary>
-        /// <param name="values">The individual values that have been selected in the control.</param>
-        /// <param name="privateConfigurationValues">The private (database) configuration values.</param>
-        /// <returns>A list of <see cref="ListItemBag"/> objects that have the <see cref="ListItemBag.Value"/> and <see cref="ListItemBag.Text"/> properties filled in.</returns>
-        protected abstract List<ListItemBag> GetSelectedItems( IEnumerable<string> values, Dictionary<string, string> privateConfigurationValues );
 
         /// <summary>
         /// Gets the URL to use when retrieving the root items of the tree view.
@@ -109,7 +90,7 @@ namespace Rock.Field.Types
             if ( control is UniversalItemTreePicker picker )
             {
                 var privateConfigurationValues = configurationValues.ToDictionary( v => v.Key, v => v.Value.Value );
-                var values = GetSelectedItems( GetValueAsList( value ), privateConfigurationValues ) ?? new List<ListItemBag>();
+                var values = GetItemBags( GetValueAsList( value ), privateConfigurationValues ) ?? new List<ListItemBag>();
 
                 picker.ItemIds = values.Select( v => v.Value );
                 picker.ItemNames = values.Select( v => v.Text );
@@ -180,7 +161,7 @@ namespace Rock.Field.Types
         public sealed override string FormatFilterValueValue( Dictionary<string, ConfigurationValue> configurationValues, string value )
         {
             var privateConfigurationValues = configurationValues.ToDictionary( v => v.Key, v => v.Value.Value );
-            var textValues = GetSelectedItems( GetValueAsList( value ), privateConfigurationValues )
+            var textValues = GetItemBags( GetValueAsList( value ), privateConfigurationValues )
                 ?.Select( b => b.Text )
                 .ToList()
                 ?? new List<string>();
@@ -209,7 +190,7 @@ namespace Rock.Field.Types
         }
 
         /// <inheritdoc/>
-        protected override List<ListItemBag> GetSelectedItems( IEnumerable<string> privateValues, Dictionary<string, string> privateConfigurationValues )
+        protected override List<ListItemBag> GetItemBags( IEnumerable<string> privateValues, Dictionary<string, string> privateConfigurationValues )
         {
             return privateValues.AsGuidList()
                 .Select( guid => Rock.Web.Cache.CategoryCache.Get( guid ) )
