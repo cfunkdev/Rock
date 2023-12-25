@@ -80,6 +80,11 @@ namespace Rock.Field.Types
         /// <returns>A list of strings that represent the individual values.</returns>
         protected List<string> GetValueAsList( string privateValue )
         {
+            if ( privateValue.IsNullOrWhiteSpace() )
+            {
+                return new List<string>();
+            }
+
             return privateValue.Split( new[] { ',' }, StringSplitOptions.RemoveEmptyEntries ).ToList();
         }
 

@@ -181,7 +181,7 @@
                         self.clearError();
 
                         return self.options
-                            .getNodes(parentId, parentNode, self.options.selectedIds, toExpandCategories)
+                            .getNodes(parentId, parentNode, self.options.selectedIds, toExpandParentItems)
                             .done(data => {
                                 try {
                                     self.dataBind(data, parentNode);
@@ -272,14 +272,16 @@
                                 // If we find the node, make sure it's expanded, and fetch its children
                                 currentNode.isOpen = true;
 
-                                // Queue up current node
-                                inProgress[currentId] = currentId;
-                                getNodes(currentId, currentNode).done(function () {
-                                    // Dequeue on completion
-                                    delete inProgress[currentId];
-                                    // And notify the Deferred of progress
-                                    dfd.notify();
-                                });
+                                if (!self.options.universalItemPicker || !currentNode.children) {
+                                    // Queue up current node
+                                    inProgress[currentId] = currentId;
+                                    getNodes(currentId, currentNode).done(function () {
+                                        // Dequeue on completion
+                                        delete inProgress[currentId];
+                                        // And notify the Deferred of progress
+                                        dfd.notify();
+                                    });
+                                }
                             }
                         }
 
@@ -305,16 +307,14 @@
                                 // If we find the node, make sure it's expanded, and fetch its children
                                 currentCategoryNode.isOpen = true;
 
-                                if (!self.options.universalItemPicker || !currentCategoryNode.children) {
-                                    // Queue up current node
-                                    inProgress[currentCategoryId] = currentCategoryId;
-                                    getNodes(currentCategoryId, currentCategoryNode).done(function () {
-                                        // Dequeue on completion
-                                        delete inProgress[currentCategoryId];
-                                        // And notify the Deferred of progress
-                                        dfd.notify();
-                                    });
-                                }
+                                // Queue up current node
+                                inProgress[currentCategoryId] = currentCategoryId;
+                                getNodes(currentCategoryId, currentCategoryNode).done(function () {
+                                    // Dequeue on completion
+                                    delete inProgress[currentCategoryId];
+                                    // And notify the Deferred of progress
+                                    dfd.notify();
+                                });
                             }
                         }
                     });
@@ -518,7 +518,7 @@
                     $li.append('<span class="rocktree-name" title="' + titleText + '"> <span class="rocktree-node-name-text">' + node.name + '</span>' + countInfoHtml + '</span>');
                     var $rockTreeNameNode = $li.find('.rocktree-name');
 
-                    if (!self.options.categorySelection && node.isCategory) {
+                    if ((!self.options.categorySelection && node.isCategory) || node.isSelectionDisabled) {
                         // Remove the hover event for the item since it is a category and we don't want to show it as being selectable.
                         $rockTreeNameNode.addClass('disabled');
                     }
@@ -710,7 +710,7 @@
                     i;
 
                 // Selecting a category when one is not allowed should do nothing.
-                if (!self.options.categorySelection && node.isCategory) {
+                if ((!self.options.categorySelection && node.isCategory) || node.isSelectionDisabled) {
                     return;
                 }
 
@@ -879,6 +879,7 @@
             include: [],
             mapData: _mapArrayDefault
         },
-        onSelected: []
+        onSelected: [],
+        universalItemPicker: false
     };
 }(jQuery));

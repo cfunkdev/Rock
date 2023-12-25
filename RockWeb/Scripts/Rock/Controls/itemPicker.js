@@ -84,7 +84,8 @@
                                 name: item.text,
                                 iconCssClass: item.iconCssClass,
                                 hasChildren: item.hasChildren,
-                                isCategory: item.isFolder,
+                                isCategory: false,
+                                isSelectionDisabled: item.isSelectionDisabled,
                                 childrenUrl: item.childrenUrl
                             };
 
@@ -97,17 +98,17 @@
                     }
 
                     treeOptions.universalItemPicker = true;
-                    treeOptions.expandedCategoryIds = (treeOptions.expandedCategoryIds || []).filter(id => id !== 0);
+                    treeOptions.expandedIds = (treeOptions.expandedIds || []).filter(id => id !== 0);
 
                     treeOptions.getNodes = (parentId, parentNode, selectedIds, toExpandIds) => {
                         const req = {
                         };
 
                         if (!parentId) {
-                            req.autoExpandTargetGuids = selectedIds;
+                            req.expandToValues = selectedIds;
                         }
                         else {
-                            req.parentGuid = parentId;
+                            req.parentValue = parentId;
                         }
 
                         return $.ajax({

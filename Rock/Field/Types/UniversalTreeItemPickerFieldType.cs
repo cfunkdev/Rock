@@ -14,6 +14,7 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.UI;
@@ -57,9 +58,42 @@ namespace Rock.Field.Types
             return base.GetPublicConfigurationValues( privateConfigurationValues, usage, value );
         }
 
+        /// <inheritdoc/>
+        public sealed override string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
+        {
+            return GetSelectedItems( GetValueAsList( privateValue ), privateConfigurationValues )
+                ?.Select( b => b.Text )
+                .JoinStrings( ", " )
+                ?? string.Empty;
+        }
+
         #region Protected Methods
 
-        protected abstract List<ListItemBag> GetValueItems( IEnumerable<string> privateValues, Dictionary<string, string> privateConfiguratinValues );
+        /// <summary>
+        /// Gets the items for the selected values. If an item is not found
+        /// (for example, no longer exists), then it should not be included
+        /// in the returned list.
+        /// </summary>
+        /// <param name="values">The individual values that have been selected in the control.</param>
+        /// <param name="privateConfigurationValues">The private (database) configuration values.</param>
+        /// <returns>A list of <see cref="ListItemBag"/> objects that have the <see cref="ListItemBag.Value"/> and <see cref="ListItemBag.Text"/> properties filled in.</returns>
+        protected abstract List<ListItemBag> GetSelectedItems( IEnumerable<string> values, Dictionary<string, string> privateConfigurationValues );
+
+        /// <summary>
+        /// Gets the URL to use when retrieving the root items of the tree view.
+        /// This will also be used to expand child items if the parent item does
+        /// not specify its own URL.
+        /// </summary>
+        /// <param name="privateConfigurationValues">The private (database) configuration values.</param>
+        /// <returns>A string that represents the URL.</returns>
+        protected abstract string GetRootRestUrl( Dictionary<string, string> privateConfigurationValues );
+
+        /// <summary>
+        /// Gets the CSS icon class to use on the picker when it is clsoed.
+        /// </summary>
+        /// <param name="privateConfigurationValues">The private (database) configuration values.</param>
+        /// <returns>A string that represents the icon class.</returns>
+        protected abstract string GetItemIconCssClass( Dictionary<string, string> privateConfigurationValues );
 
         #endregion
 
@@ -72,7 +106,9 @@ namespace Rock.Field.Types
         {
             if ( control is UniversalItemTreePicker picker )
             {
-                var values = GetValueItems( value.Split( ',' ), configurationValues.ToDictionary( item => item.Key, item => item.Value.Value ) );
+                var privateConfigurationValues = configurationValues.ToDictionary( v => v.Key, v => v.Value.Value );
+                var values = GetSelectedItems( GetValueAsList( value ), privateConfigurationValues ) ?? new List<ListItemBag>();
+
                 picker.ItemIds = values.Select( v => v.Value );
                 picker.ItemNames = values.Select( v => v.Text );
             }
@@ -94,13 +130,16 @@ namespace Rock.Field.Types
         {
             var privateConfigurationValues = configurationValues.ToDictionary( k => k.Key, v => v.Value.Value );
 
-            return new UniversalItemTreePicker
+            var picker = new UniversalItemTreePicker
             {
                 ID = id,
-                IconCssClass = "fa fa-user",
-                UseCategorySelection = true,
-                // ItemRestUrl = ""
+                IconCssClass = GetItemIconCssClass( privateConfigurationValues ),
+                AllowMultiSelect = IsMultipleSelection
             };
+
+            picker.SetItemRestUrl( GetRootRestUrl( privateConfigurationValues ) );
+
+            return picker;
         }
 
         #endregion
@@ -110,17 +149,15 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override Control FilterValueControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
         {
-            var privateConfigurationValues = configurationValues.ToDictionary( k => k.Key, v => v.Value.Value );
             id = $"{id ?? string.Empty}_ctlCompareValue";
 
-            var control = new UniversalItemTreePicker
-            {
-                ID = id,
-                IconCssClass = "fa fa-user",
-                UseCategorySelection = true,
-            };
+            var control = ( UniversalItemTreePicker ) EditControl( configurationValues, $"{id ?? string.Empty}_ctlCompareValue" );
 
             control.AddCssClass( "js-filter-control" );
+
+            // Invert multiple selection on the filter control. We don't
+            // allow a many-to-many style filtering.
+            control.AllowMultiSelect = !IsMultipleSelection;
 
             return control;
         }
@@ -128,32 +165,25 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override string GetFilterValueValue( Control control, Dictionary<string, ConfigurationValue> configurationValues )
         {
-            if ( control is UniversalItemTreePicker picker )
-            {
-                return picker.ItemIds.Where( id => id != "0" ).JoinStrings( "," );
-            }
-
-            return string.Empty;
+            return GetEditValue( control, configurationValues );
         }
 
         /// <inheritdoc/>
         public sealed override void SetFilterValueValue( Control control, Dictionary<string, ConfigurationValue> configurationValues, string value )
         {
-            if ( control is UniversalItemTreePicker picker )
-            {
-                var values = GetValueItems( value.Split( ',' ), configurationValues.ToDictionary( item => item.Key, item => item.Value.Value ) );
-                picker.ItemIds = values.Select( v => v.Value );
-                picker.ItemNames = values.Select( v => v.Text );
-            }
+            SetEditValue( control, configurationValues, value );
         }
 
         /// <inheritdoc/>
         public sealed override string FormatFilterValueValue( Dictionary<string, ConfigurationValue> configurationValues, string value )
         {
-            // TODO
-            var textValues = new List<string>();
+            var privateConfigurationValues = configurationValues.ToDictionary( v => v.Key, v => v.Value.Value );
+            var textValues = GetSelectedItems( GetValueAsList( value ), privateConfigurationValues )
+                ?.Select( b => b.Text )
+                .ToList()
+                ?? new List<string>();
 
-            return AddQuotes( textValues.ToList().AsDelimited( "' OR '" ) );
+            return AddQuotes( textValues.AsDelimited( "' OR '" ) );
         }
 
         #endregion
@@ -164,17 +194,25 @@ namespace Rock.Field.Types
     [Rock.SystemGuid.FieldTypeGuid( "8ba19292-e46a-445a-9b54-9a547b9d9521" )]
     public class DanielTreeTestFieldType : UniversalTreeItemPickerFieldType
     {
-        protected override List<ListItemBag> GetValueItems( IEnumerable<string> privateValues, Dictionary<string, string> privateConfiguratinValues )
+        /// <inheritdoc/>
+        protected override string GetRootRestUrl( Dictionary<string, string> privateConfigurationValues )
+        {
+            return "/api/v2/Controls/TestItems";
+        }
+
+        /// <inheritdoc/>
+        protected override string GetItemIconCssClass( Dictionary<string, string> privateConfigurationValues )
+        {
+            return "fa fa-user";
+        }
+
+        /// <inheritdoc/>
+        protected override List<ListItemBag> GetSelectedItems( IEnumerable<string> privateValues, Dictionary<string, string> privateConfigurationValues )
         {
             return privateValues.AsGuidList()
                 .Select( guid => Rock.Web.Cache.CategoryCache.Get( guid ) )
                 .Where( c => c != null )
                 .ToListItemBagList();
-        }
-
-        public override string GetItemTextValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
-        {
-            return "";
         }
     }
 }

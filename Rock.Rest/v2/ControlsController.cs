@@ -66,28 +66,30 @@ namespace Rock.Rest.v2
         [Rock.SystemGuid.RestActionGuid( "9f2fa571-a704-4470-9e31-af4ea234d2e0" )]
         public IHttpActionResult PostTestItems( [FromBody] UniversalTreeItemPickerOptionsBag options )
         {
-            var categories = !options.ParentGuid.HasValue
+            var categories = options.ParentValue.IsNullOrWhiteSpace()
                 ? CategoryCache.All().Where( c => !c.ParentCategoryId.HasValue ).ToList()
-                : CategoryCache.Get( options.ParentGuid.Value )?.Categories;
+                : CategoryCache.Get( options.ParentValue.AsGuid() )?.Categories;
 
             if ( categories == null )
             {
                 return NotFound();
             }
 
-            var paths = options.AutoExpandTargetGuids
+            var autoExpandValues = options.ExpandToValues
                 ?.AsGuidList()
-                .Select( guid => GetPathToCategory( guid, options.ParentGuid ) )
+                .Select( guid => GetPathToCategory( guid, options.ParentValue ) )
+                .SelectMany( p => p )
                 .ToList()
-                ?? new List<List<Guid>>();
+                ?? new List<Guid>();
 
-            return Ok( LoadCategories( categories, paths ) );
+            return Ok( LoadCategories( categories, autoExpandValues ) );
         }
 
-        private List<Guid> GetPathToCategory( Guid itemGuid, Guid? rootGuid )
+        private List<Guid> GetPathToCategory( Guid itemGuid, string rootValue )
         {
             var path = new List<Guid>();
-            var category = CategoryCache.Get( itemGuid );
+            var category = CategoryCache.Get( itemGuid )?.ParentCategory;
+            var rootGuid = rootValue.AsGuid();
 
             for ( ; category != null && category.Guid != rootGuid; category = category.ParentCategory )
             {
@@ -97,33 +99,39 @@ namespace Rock.Rest.v2
             return path;
         }
 
-        private List<TreeItemBag> LoadCategories( List<CategoryCache> categories, List<List<Guid>> paths )
+        private List<TreeItemBag> LoadCategories( List<CategoryCache> categories, List<Guid> autoExpandValues )
         {
             var treeItems = categories
                 .Select( c =>
                 {
-                    var treeItem = new TreeItemBag
+                    var treeItem = new UniversalTreeItemBag
                     {
                         Value = c.Guid.ToString(),
                         Text = c.Name,
                         IsActive = true,
                         HasChildren = c.Categories.Any(),
                         IconCssClass = c.IconCssClass,
-                        IsFolder = true
+                        IsFolder = true,
+                        IsSelectionDisabled = !c.ParentCategoryId.HasValue
                     };
 
-                    var loadChildren = paths.Any( p => p.Contains( c.Guid ) );
+                    var loadChildren = autoExpandValues.Contains( c.Guid );
 
                     if ( loadChildren )
                     {
-                        treeItem.Children = LoadCategories( c.Categories, paths );
+                        treeItem.Children = LoadCategories( c.Categories, autoExpandValues );
                     }
 
-                    return treeItem;
+                    return ( TreeItemBag ) treeItem;
                 } )
                 .ToList();
 
             return treeItems;
+        }
+
+        public class UniversalTreeItemBag : TreeItemBag
+        {
+            public bool IsSelectionDisabled { get; set; }
         }
 
         public class UniversalTreeItemPickerOptionsBag
@@ -132,9 +140,9 @@ namespace Rock.Rest.v2
 
             public string Context { get; set; }
 
-            public Guid? ParentGuid { get; set; }
+            public string ParentValue { get; set; }
 
-            public List<string> AutoExpandTargetGuids { get; set; }
+            public List<string> ExpandToValues { get; set; }
         }
 
         #region Account Picker

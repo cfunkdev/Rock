@@ -18,57 +18,52 @@ using System.Web.UI;
 
 namespace Rock.Web.UI.Controls
 {
-    public sealed class UniversalItemTreePicker : ItemPicker
+    /// <summary>
+    /// This is a special use tree item picker for use with
+    /// <see cref="Rock.Field.Types.UniversalTreeItemPickerFieldType"/>.
+    /// </summary>
+    internal sealed class UniversalItemTreePicker : ItemPicker
     {
+        private string _itemRestUrl;
+
         /// <inheritdoc/>
-        public override string ItemRestUrl => "/api/v2/Controls/TestItems";
+        public override string ItemRestUrl => _itemRestUrl;
 
-        internal override string InternalCategoryPrefix => string.Empty;
-
-        protected override void SetValueOnSelect()
-        {
-            ItemName = "selected";
-            ExpandedCategoryIds = "";
-        }
-
-        protected override void SetValuesOnSelect()
-        {
-            ItemNames = new string[] { "selected 1", "selected 2" };
-            ExpandedCategoryIds = "";
-        }
-
-        // I think the tree needs a few things:
-        // 1. Root URL (this will be restUrl) that will return the root items, and then the URLs to the child items.
-        // 2. NO - URL to get the path to items (i.e. ["parentA", "parentB", "itemId"]
-        //    This should take an array of item ids and return a dictionary of arrays.
-        // 3. Both URLs should be POST calls, each taking a security grant token,
-        //    a generic context string, and in the case of #2 an array of item guids. #1 should also get ParentGuid.
-        // 4. When getting the root items, the currently selected item identifiers
-        //    should be included, this allows the API to auto-expand the tree nodes required
-        //    to reach the selected item(s).
-        // 5. TreeItemBag, should it be updated to include an optional childUrl to specify
-        //    the URL to use to load children? If not should it be a custom subclass for use
-        //    specifically by the universal tree picker?
+        /// <inheritdoc/>
         protected override void RegisterJavaScript()
         {
             string treeViewScript =
 $@"Rock.controls.itemPicker.initialize({{
-    controlId: '{this.ClientID}',
+    controlId: '{ClientID}',
     universalItemPicker: true,
-    restUrl: '{this.ResolveUrl( ItemRestUrl )}',
-    allowMultiSelect: {this.AllowMultiSelect.ToString().ToLower()},
-    allowCategorySelection: {this.UseCategorySelection.ToString().ToLower()},
+    restUrl: '{ResolveUrl( ItemRestUrl )}',
+    allowMultiSelect: {AllowMultiSelect.ToString().ToLower()},
+    allowCategorySelection: false,
     categoryPrefix: '',
-    defaultText: '{this.DefaultText}',
-    expandedIds: [{this.InitialItemParentIds}],
-    expandedCategoryIds: [{this.ExpandedCategoryIds}],
-    showSelectChildren: {this.ShowSelectChildren.ToString().ToLower()}
+    defaultText: '',
+    expandedIds: [{InitialItemParentIds}],
+    showSelectChildren: false
 }});
 ";
             ScriptManager.RegisterStartupScript( this, this.GetType(), "item_picker-treeviewscript_" + this.ClientID, treeViewScript, true );
 
             // Search Control
 
+        }
+
+        public void SetItemRestUrl( string url )
+        {
+            _itemRestUrl = url;
+        }
+
+        /// <inheritdoc/>
+        protected override void SetValueOnSelect()
+        {
+        }
+
+        /// <inheritdoc/>
+        protected override void SetValuesOnSelect()
+        {
         }
     }
 }
