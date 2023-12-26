@@ -1001,6 +1001,7 @@
     <Compile Include="Field\ReferencedProperty.cs" />
     <Compile Include="Field\Types\ColorSelectorFieldType.cs" />
     <Compile Include="Field\Types\GroupMemberRequirementFieldType.cs" />
+    <Compile Include="Field\Types\UniversalEnumPickerFieldType.cs" />
     <Compile Include="Field\Types\UniversalItemPickerFieldType.cs" />
     <Compile Include="Field\Types\MediaSelectorFieldType.cs" />
     <Compile Include="Field\Types\ReminderTypeFieldType.cs" />
