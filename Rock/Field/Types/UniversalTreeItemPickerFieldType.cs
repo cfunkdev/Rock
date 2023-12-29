@@ -32,7 +32,7 @@ namespace Rock.Field.Types
     /// be picked by the person in a tree list.
     /// </summary>
     [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
-    [ClientFieldTypeGuid( "c7485f3f-0c10-4db6-9574-c10b195617e4" )]
+    [UniversalFieldTypeGuid( "c7485f3f-0c10-4db6-9574-c10b195617e4" )]
     public abstract class UniversalTreeItemPickerFieldType : UniversalItemFieldType
     {
         /// <inheritdoc/>

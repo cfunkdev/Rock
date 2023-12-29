@@ -2597,7 +2597,7 @@ namespace Rock.Rest.v2
                 {
                     Text = f.Name,
                     Value = f.Guid.ToString(),
-                    Category = f.Field?.GetType().GetCustomAttribute<ClientFieldTypeGuidAttribute>()?.Guid.ToString()
+                    Category = f.Field?.GetType().GetCustomAttribute<UniversalFieldTypeGuidAttribute>()?.Guid.ToString()
                 } )
                 .ToList();
 

@@ -380,7 +380,7 @@ namespace Rock.Field.Types
                     continue;
                 }
 
-                var clientFieldTypeGuidAttribute = fieldTypeCache.Field.GetType().GetCustomAttribute<ClientFieldTypeGuidAttribute>();
+                var clientFieldTypeGuidAttribute = fieldTypeCache.Field.GetType().GetCustomAttribute<UniversalFieldTypeGuidAttribute>();
                 var configurationValues = fieldTypeAttribute.FieldConfigurationValues
                     .ToDictionary( k => k.Key, k => k.Value.Value );
 

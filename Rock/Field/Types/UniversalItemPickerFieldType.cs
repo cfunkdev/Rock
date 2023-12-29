@@ -31,7 +31,7 @@ namespace Rock.Field.Types
     /// be picked by the person.
     /// </summary>
     [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
-    [ClientFieldTypeGuid( "b69b5a61-6fcd-4e3b-bb45-5f6802514953" )]
+    [UniversalFieldTypeGuid( "b69b5a61-6fcd-4e3b-bb45-5f6802514953" )]
     public abstract class UniversalItemPickerFieldType : UniversalItemFieldType
     {
         /// <inheritdoc/>

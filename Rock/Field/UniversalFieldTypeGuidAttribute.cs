@@ -23,13 +23,13 @@ namespace Rock.Field
     /// subclasses to use a standard, common, UI for the field type.
     /// </summary>
     [System.AttributeUsage( System.AttributeTargets.Class, Inherited = true, AllowMultiple = false )]
-    internal class ClientFieldTypeGuidAttribute : Rock.SystemGuid.RockGuidAttribute
+    internal class UniversalFieldTypeGuidAttribute : Rock.SystemGuid.RockGuidAttribute
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ClientFieldTypeGuidAttribute"/> class.
+        /// Initializes a new instance of the <see cref="UniversalFieldTypeGuidAttribute"/> class.
         /// </summary>
         /// <param name="guid">The unique identifier.</param>
-        public ClientFieldTypeGuidAttribute( string guid )
+        public UniversalFieldTypeGuidAttribute( string guid )
             : base( guid )
         {
         }

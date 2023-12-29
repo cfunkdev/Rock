@@ -993,7 +993,7 @@
     <Compile Include="Event\InteractiveExperiences\VisualizerTypeComponents\BarChart.cs" />
     <Compile Include="Event\InteractiveExperiences\VisualizerTypeComponents\WordCloud.cs" />
     <Compile Include="Event\InteractiveExperiences\VisualizerTypeContainer.cs" />
-    <Compile Include="Field\ClientFieldTypeGuidAttribute.cs" />
+    <Compile Include="Field\UniversalFieldTypeGuidAttribute.cs" />
     <Compile Include="Field\IEntityReferenceFieldType.cs" />
     <Compile Include="Field\ISplitMultiValueFieldType.cs" />
     <Compile Include="Field\PersistedValues.cs" />

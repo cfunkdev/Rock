@@ -57,7 +57,7 @@ namespace Rock.Attribute
         internal static PublicEditableAttributeBag GetPublicEditableAttributeViewModel( Rock.Model.Attribute attribute )
         {
             var fieldTypeCache = FieldTypeCache.Get( attribute.FieldTypeId );
-            var clientFieldTypeGuidAttribute = fieldTypeCache.Field?.GetType().GetCustomAttribute<ClientFieldTypeGuidAttribute>();
+            var clientFieldTypeGuidAttribute = fieldTypeCache.Field?.GetType().GetCustomAttribute<UniversalFieldTypeGuidAttribute>();
             var configurationValues = attribute.AttributeQualifiers.ToDictionary( q => q.Key, q => q.Value );
 
             return new PublicEditableAttributeBag
@@ -117,7 +117,7 @@ namespace Rock.Attribute
         internal static PublicAttributeBag GetPublicAttributeForView( AttributeCache attribute, string value )
         {
             var fieldType = _fieldTypes.GetOrAdd( attribute.FieldType.Guid, GetFieldType );
-            var clientFieldTypeGuidAttribute = fieldType.GetType().GetCustomAttribute<ClientFieldTypeGuidAttribute>();
+            var clientFieldTypeGuidAttribute = fieldType.GetType().GetCustomAttribute<UniversalFieldTypeGuidAttribute>();
 
             return new PublicAttributeBag
             {
@@ -160,7 +160,7 @@ namespace Rock.Attribute
         internal static PublicAttributeBag GetPublicAttributeForEdit( AttributeCache attribute )
         {
             var fieldType = _fieldTypes.GetOrAdd( attribute.FieldType.Guid, GetFieldType );
-            var clientFieldTypeGuidAttribute = fieldType.GetType().GetCustomAttribute<ClientFieldTypeGuidAttribute>();
+            var clientFieldTypeGuidAttribute = fieldType.GetType().GetCustomAttribute<UniversalFieldTypeGuidAttribute>();
 
             return new PublicAttributeBag
             {
