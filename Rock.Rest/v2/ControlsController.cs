@@ -85,6 +85,44 @@ namespace Rock.Rest.v2
             return Ok( LoadCategories( categories, autoExpandValues ) );
         }
 
+        [HttpPost]
+        [System.Web.Http.Route( "TestSearch" )]
+        [Authenticate]
+        [Rock.SystemGuid.RestActionGuid( "adb2adf9-26ba-4573-a1bb-8f0735bf51f4" )]
+        public IHttpActionResult PostTestSearch( [FromBody] UniversalItemSearchPickerOptionsBag options )
+        {
+            var items = CategoryCache.All()
+                .Where( c => c.Name.IndexOf( options.Value, StringComparison.OrdinalIgnoreCase ) >= 0 )
+                .Select( c =>
+                {
+                    var item = new UniversalItemSearchPickerItemBag
+                    {
+                        Value = c.Guid.ToString(),
+                        Title = c.Name,
+                        Description = c.Description,
+                        Details = new List<ListItemBag>(),
+                        Labels = new List<ListItemBag>()
+                    };
+
+                    if ( c.EntityTypeId.HasValue )
+                    {
+                        item.Labels.Add( new ListItemBag { Value = "default", Text = EntityTypeCache.Get( c.EntityTypeId.Value )?.FriendlyName ?? "Unknown" } );
+                    }
+
+                    item.Details.Add( new ListItemBag { Value = "Id", Text = c.Id.ToString() } );
+
+                    if ( c.IconCssClass.IsNotNullOrWhiteSpace() )
+                    {
+                        item.Details.Add( new ListItemBag { Value = "Icon", Text = c.IconCssClass } );
+                    }
+
+                    return item;
+                } )
+                .ToList();
+
+            return Ok( items );
+        }
+
         private List<Guid> GetPathToCategory( Guid itemGuid, string rootValue )
         {
             var path = new List<Guid>();
@@ -142,6 +180,30 @@ namespace Rock.Rest.v2
             public string ParentValue { get; set; }
 
             public List<string> ExpandToValues { get; set; }
+        }
+
+        public class UniversalItemSearchPickerOptionsBag
+        {
+            public string SecurityGrantToken { get; set; }
+
+            public string Context { get; set; }
+
+            public string Value { get; set; }
+
+            public bool IsInactiveIncluded { get; set; }
+        }
+
+        public class UniversalItemSearchPickerItemBag
+        {
+            public string Value { get; set; }
+
+            public string Title { get; set; }
+
+            public string Description { get; set; }
+
+            public List<ListItemBag> Details { get; set; }
+
+            public List<ListItemBag> Labels { get; set; }
         }
 
         #region Account Picker

@@ -240,7 +240,7 @@ namespace Rock.Web.UI.Controls
         #region Controls
 
         private Panel _hiddenFieldsPanel;
-        private HiddenFieldWithClass _hfItemId;
+        private HiddenFieldWithClass _hfItemValue;
         private HiddenFieldWithClass _hfItemName;
 
         private Panel _searchPanel;
@@ -266,14 +266,14 @@ namespace Rock.Web.UI.Controls
             {
                 EnsureChildControls();
 
-                return _hfItemId.Value;
+                return _hfItemValue.Value;
             }
 
             set
             {
                 EnsureChildControls();
 
-                _hfItemId.Value = value;
+                _hfItemValue.Value = value;
             }
         }
 
@@ -398,11 +398,11 @@ namespace Rock.Web.UI.Controls
             _hiddenFieldsPanel.Attributes.Add( "style", "display: none" );
             Controls.Add( _hiddenFieldsPanel );
 
-            _hfItemId = new HiddenFieldWithClass();
-            _hfItemId.CssClass = "js-item-id";
-            _hiddenFieldsPanel.Controls.Add( _hfItemId );
-            _hfItemId.ID = "hfItemId";
-            _hfItemId.Value = string.Empty;
+            _hfItemValue = new HiddenFieldWithClass();
+            _hfItemValue.CssClass = "js-item-value";
+            _hiddenFieldsPanel.Controls.Add( _hfItemValue );
+            _hfItemValue.ID = "hfItemId";
+            _hfItemValue.Value = string.Empty;
 
             _hfItemName = new HiddenFieldWithClass();
             _hfItemName.CssClass = "js-item-name";
@@ -453,7 +453,7 @@ namespace Rock.Web.UI.Controls
 
             // override a couple of property values on RequiredFieldValidator so that Validation works correctly
             RequiredFieldValidator.InitialValue = "";
-            RequiredFieldValidator.ControlToValidate = _hfItemId.ID;
+            RequiredFieldValidator.ControlToValidate = _hfItemValue.ID;
         }
 
         /// <summary>

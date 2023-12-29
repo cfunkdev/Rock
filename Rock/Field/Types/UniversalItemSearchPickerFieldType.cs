@@ -187,7 +187,7 @@ namespace Rock.Field.Types
     {
         protected override string GetSearchUrl( Dictionary<string, string> privateConfigurationValues )
         {
-            return "/Webhooks/Lava.ashx/ItemSearch";
+            return "/api/v2/Controls/TestSearch";
         }
 
         protected override bool IsIncludeInactiveVisible( Dictionary<string, string> privateConfigurationValues )
@@ -197,7 +197,11 @@ namespace Rock.Field.Types
 
         protected override List<ListItemBag> GetItemBags( IEnumerable<string> values, Dictionary<string, string> privateConfigurationValues )
         {
-            return new List<ListItemBag>();
+            return values
+                .AsGuidList()
+                .Select( guid => Rock.Web.Cache.CategoryCache.Get( guid ) )
+                .Where( c => c != null )
+                .ToListItemBagList();
         }
     }
 }

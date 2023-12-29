@@ -27,11 +27,11 @@
             var $pickerMenu = $pickerControl.find('.js-universalitemsearchpicker-menu');
             var $pickerSelect = $pickerControl.find('.js-universalitemsearchpicker-select');
             var $pickerSelectNone = $pickerControl.find('.js-picker-select-none');
-            var $pickerItemId = $pickerControl.find('.js-item-id');
+            var $pickerItemValue = $pickerControl.find('.js-item-value');
             var $pickerItemName = $pickerControl.find('.js-item-name');
             var $pickerCancel = $pickerControl.find('.js-universalitemsearchpicker-cancel');
             var promise = null;
-            var lastSelectedItemId = null;
+            var lastSelectedItemValue = null;
 
             var autoCompletes = $searchFields.autocomplete({
                 source: function (request, response) {
@@ -51,7 +51,7 @@
                     }
 
                     var searchBag = {
-                        value: search.name,
+                        value: search.value,
                         isInactiveIncluded: $searchFieldIncludeInactive && $searchFieldIncludeInactive.is(":checked") == true
                     };
 
@@ -73,32 +73,8 @@
 
                     promise.done(function (data) {
                         $searchResults.html('');
-                        //response(data);
-                        response([{
-                            id: '123',
-                            title: "Ted Decker",
-                            description: "This is father of the Noah and Alexis Decker.",
-                            details: [
-                                {
-                                    value: "Email",
-                                    text: "tdecker@rocksolidchurchdemo.com"
-                                },
-                                {
-                                    value: "Age",
-                                    text: "38 yrs"
-                                }
-                            ],
-                            labels: [
-                                {
-                                    value: "info",
-                                    text: "Male"
-                                },
-                                {
-                                    value: "default",
-                                    text: "Peoria"
-                                }
-                            ]
-                        }]);
+
+                        response(data);
 
                         exports.universalItemSearchPickers[controlId].updateScrollbar();
                     });
@@ -153,15 +129,14 @@
                     .append($labelText)
                     .prependTo($div);
 
-                $('<input type="radio" name="person-id" />')
-                    .attr('id', item.Id)
+                $('<input type="radio" name="item-id" />')
                     .attr('value', item.Id)
                     .prependTo($label);
 
                 var $li = $('<li/>')
                     .addClass('picker-select-item js-picker-select-item')
                     .css('list-style', 'none')
-                    .attr('data-item-id', item.id)
+                    .attr('data-item-value', item.value)
                     .attr('data-item-name', item.title)
                     .html($div);
 
@@ -233,27 +208,20 @@
                 var $selectedItem = $(this).closest('.js-picker-select-item');
                 var $itemDetails = $selectedItem.find('.js-picker-select-item-details');
 
-                var selectedItemId = $selectedItem.attr('data-item-id');
+                var selectedItemValue = $selectedItem.attr('data-item-value');
 
                 if ($itemDetails.is(':visible')) {
-                    if (selectedItemId == lastSelectedItemId && e.type == 'click') {
-                        // if they are clicking the same item twice in a row (and the details are done expanding), assume that's the one they want to pick
-                        var selectedText = $selectedItem.attr('data-item-name');
-
-                        setSelectedItem(selectedItemId, selectedText);
-
-                        $pickerSelect.trigger('onclick');
-                        // Fire the postBack for the Select button.
-                        var postBackUrl = $pickerSelect.prop('href');
-                        if (postBackUrl) {
-                            window.location = postBackUrl;
-                        }
+                    if (selectedItemValue == lastSelectedItemValue && e.type == 'click') {
+                        // if they are clicking the same item twice in a row
+                        // (and the details are done expanding), assume that's
+                        // the one they want to pick
+                        $pickerSelect.trigger('click');
                     } else {
                         // if it is already visible but isn't the same one twice, just leave it open
                     }
                 }
 
-                lastSelectedItemId = selectedItemId;
+                lastSelectedItemValue = selectedItemValue;
 
                 showItemDetails($selectedItem.find('.picker-select-item-details:hidden'));
             });
@@ -269,7 +237,7 @@
             $pickerControl.on('mouseenter',
                 function () {
                     // only show the X if there is something picked
-                    if (($pickerItemId.val() || '') !== '') {
+                    if (($pickerItemValue.val() || '') !== '') {
                         $pickerSelectNone.addClass('show-hover');
                     }
                 });
@@ -286,7 +254,7 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                $pickerItemId.val('');
+                $pickerItemValue.val('');
                 $pickerItemName.val('');
                 // run onclick event from the button
                 $(this).trigger('onclick');
@@ -302,7 +270,7 @@
             var setSelectedItem = function (selectedValue, selectedText) {
                 var selectedItemLabel = $pickerControl.find('.js-universalitemsearchpicker-selecteditem-label');
 
-                $pickerItemId.val(selectedValue);
+                $pickerItemValue.val(selectedValue);
                 $pickerItemName.val(selectedText);
 
                 selectedItemLabel.val(selectedValue);
@@ -316,12 +284,18 @@
             }
 
             $pickerSelect.on('click', function () {
-                var $radInput = $pickerControl.find('input:checked'),
-                    selectedValue = $radInput.val(),
-                    selectedText = $radInput.closest('.js-picker-select-item').attr('data-item-name');
+                var $selectedItem = $pickerControl.find('input:checked').closest('.js-picker-select-item');
+                var selectedItemValue = $selectedItem.attr('data-item-value');
+                var selectedText = $selectedItem.attr('data-item-name');
 
-                setSelectedItem(selectedValue, selectedText);
+                setSelectedItem(selectedItemValue, selectedText);
                 clearSearchFields();
+
+                // Fire the postBack for the Select button.
+                var postBackUrl = $pickerSelect.prop('href');
+                if (postBackUrl) {
+                    window.location = postBackUrl;
+                }
             });
         };
 
