@@ -64,6 +64,10 @@ class UniversalTreeItemProvider implements ITreeItemProvider {
      * @returns A collection of TreeItem objects as an asynchronous operation.
      */
     private async getItems(parentValue: string | null | undefined, expandToValues: string[] | null): Promise<TreeItemBag[]> {
+        if (!this.restUrl) {
+            return [];
+        }
+
         const options: Partial<UniversalTreeItemPickerOptionsBag> = {
             parentValue: parentValue,
             expandToValues: expandToValues,
@@ -73,7 +77,7 @@ class UniversalTreeItemProvider implements ITreeItemProvider {
 
         const response = await post<TreeItemBag[]>(this.restUrl, {}, options);
 
-        if (response.isSuccess && response.data) {
+        if (response.isSuccess && response.data && typeof response.data === "object" && Array.isArray(response.data)) {
             return response.data;
         }
         else {
@@ -203,6 +207,6 @@ export const FilterComponent = defineComponent({
     },
 
     template: `
-<EditComponent v-model="internalValue" configurationValues="configurationValues" dataEntryMode="dataEntryMode" />
+<EditComponent v-model="internalValue" :configurationValues="configurationValues" :dataEntryMode="dataEntryMode" />
 `
 });

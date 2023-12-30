@@ -24,6 +24,7 @@ using System.Web.UI.WebControls;
 
 using Rock.Attribute;
 using Rock.Data;
+using Rock.Model;
 using Rock.Reporting;
 using Rock.ViewModels.Utility;
 using Rock.Web.Cache;
@@ -64,6 +65,15 @@ namespace Rock.Field.Types
         /// <c>true</c> if this field type supports selecting multiple items.
         /// </value>
         protected virtual bool IsMultipleSelection => false;
+
+        /// <summary>
+        /// Gets a value to determine if this field type supports multiple
+        /// selection on the filter control.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this field type supports selecting multiple items in the filter.
+        /// </value>
+        internal virtual bool IsMultipleFilterSelection => !IsMultipleSelection;
 
         #endregion
 
@@ -186,7 +196,30 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override ComparisonValue GetPublicFilterValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
-            return base.GetPublicFilterValue( privateValue, privateConfigurationValues );
+            var values = privateValue.FromJsonOrNull<List<string>>();
+
+            if ( values == null || values.Count == 0 )
+            {
+                return new ComparisonValue
+                {
+                    Value = string.Empty
+                };
+            }
+            else if ( values.Count == 1 )
+            {
+                return new ComparisonValue
+                {
+                    Value = GetPublicEditValue( values[0], privateConfigurationValues, IsMultipleFilterSelection )
+                };
+            }
+            else
+            {
+                return new ComparisonValue
+                {
+                    ComparisonType = values[0].ConvertToEnumOrNull<ComparisonType>(),
+                    Value = GetPublicEditValue( values[1], privateConfigurationValues, IsMultipleFilterSelection )
+                };
+            }
         }
 
         /// <inheritdoc/>
@@ -234,11 +267,41 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override string GetPublicEditValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
-            return new ListItemBag
+            return GetPublicEditValue( privateValue, privateConfigurationValues, IsMultipleSelection );
+        }
+
+        /// <summary>
+        /// Gets the value that will be sent to remote devices. This value is
+        /// used for custom formatting as well as device-side editing.
+        /// </summary>
+        /// <param name="privateValue">The private (database) value.</param>
+        /// <param name="privateConfigurationValues">The private (database) configuration values.</param>
+        /// <param name="isMultipleAllowed"><c>true</c> if multiple values are allowed.</param>
+        /// <returns>A string of text to send to the remote device.</returns>
+        private string GetPublicEditValue( string privateValue, Dictionary<string, string> privateConfigurationValues, bool isMultipleAllowed )
+        {
+            var values = GetValueAsList( privateValue );
+
+            if ( values.Count == 0 )
             {
-                Value = privateValue,
-                Text = GetTextValue( privateValue, privateConfigurationValues )
-            }.ToCamelCaseJson( false, true );
+                return string.Empty;
+            }
+
+            var bags = GetItemBags( values, privateConfigurationValues );
+
+            if ( bags.Count == 0 )
+            {
+                return string.Empty;
+            }
+
+            if ( isMultipleAllowed )
+            {
+                return bags.ToCamelCaseJson( false, true );
+            }
+            else
+            {
+                return bags[0].ToCamelCaseJson( false, true );
+            }
         }
 
         /// <inheritdoc/>
@@ -264,7 +327,7 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public sealed override string GetPublicValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
-            return GetTextValue( privateValue, privateConfigurationValues );
+            return GetPublicEditValue( privateValue, privateConfigurationValues );
         }
 
         /// <inheritdoc/>

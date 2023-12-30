@@ -18,6 +18,8 @@ import { Component } from "vue";
 import { ComparisonType } from "@Obsidian/Enums/Reporting/comparisonType";
 import { defineAsyncComponent } from "@Obsidian/Utility/component";
 import { FieldTypeBase } from "./fieldType";
+import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
+import { getStandardFilterComponent } from "./utils";
 
 // The edit component can be quite large, so load it only as needed.
 const editComponent = defineAsyncComponent(async () => {
@@ -39,7 +41,14 @@ const configurationComponent = defineAsyncComponent(async () => {
  */
 export class UniversalItemSearchPickerFieldType extends FieldTypeBase {
     public override getTextValue(value: string): string {
-        return value;
+        try {
+            const bag = JSON.parse(value) as ListItemBag;
+
+            return bag.text ?? "";
+        }
+        catch {
+            return "";
+        }
     }
 
     public override getEditComponent(): Component {
@@ -47,7 +56,7 @@ export class UniversalItemSearchPickerFieldType extends FieldTypeBase {
     }
 
     public override getFilterComponent(): Component | null {
-        return filterComponent;
+        return getStandardFilterComponent(this.getSupportedComparisonTypes(), filterComponent);
     }
 
     public override getConfigurationComponent(): Component {

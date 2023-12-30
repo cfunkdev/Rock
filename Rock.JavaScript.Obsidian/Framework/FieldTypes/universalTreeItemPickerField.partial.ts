@@ -19,6 +19,9 @@ import { ComparisonType } from "@Obsidian/Enums/Reporting/comparisonType";
 import { defineAsyncComponent } from "@Obsidian/Utility/component";
 import { FieldTypeBase } from "./fieldType";
 import { asBoolean } from "@Obsidian/Utility/booleanUtils";
+import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
+import { getStandardFilterComponent } from "./utils";
+import { ComparisonValue } from "@Obsidian/Types/Reporting/comparisonValue";
 
 // The edit component can be quite large, so load it only as needed.
 const editComponent = defineAsyncComponent(async () => {
@@ -40,15 +43,27 @@ const configurationComponent = defineAsyncComponent(async () => {
  */
 export class UniversalTreeItemPickerFieldType extends FieldTypeBase {
     public override getTextValue(value: string): string {
-        return value;
+        try {
+            const values = JSON.parse(value) as ListItemBag | ListItemBag[];
+
+            if (Array.isArray(values)) {
+                return values.map(v => v.text ?? "").join(", ");
+            }
+            else {
+                return values.text ?? "";
+            }
+        }
+        catch {
+            return "";
+        }
     }
 
     public override getEditComponent(): Component {
         return editComponent;
     }
 
-    public override getFilterComponent(): Component | null {
-        return filterComponent;
+    public override getFilterComponent(configurationValues: Record<string, string>): Component | null {
+        return getStandardFilterComponent(this.getSupportedComparisonTypes(configurationValues), filterComponent);
     }
 
     public override getConfigurationComponent(): Component {
@@ -61,6 +76,22 @@ export class UniversalTreeItemPickerFieldType extends FieldTypeBase {
         }
         else {
             return ComparisonType.EqualTo | ComparisonType.NotEqualTo;
+        }
+    }
+
+    public override getFilterValueText(value: ComparisonValue): string {
+        try {
+            const values = JSON.parse(value.value) as ListItemBag | ListItemBag[];
+
+            if (Array.isArray(values)) {
+                return values.map(v => `'${v.text ?? ""}'`).join(" OR ");
+            }
+            else {
+                return `'${values.text ?? ""}'`;
+            }
+        }
+        catch {
+            return "";
         }
     }
 }

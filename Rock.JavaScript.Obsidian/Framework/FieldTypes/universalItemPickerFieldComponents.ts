@@ -104,6 +104,7 @@ export const EditComponent = defineComponent({
             displayStyle,
             enhanceForLongLists,
             internalValue,
+            isMultiple,
             isRequired,
             items,
         };
@@ -156,6 +157,6 @@ export const FilterComponent = defineComponent({
     },
 
     template: `
-<EditComponent v-model="internalValue" configurationValues="configurationValues" dataEntryMode="dataEntryMode" />
+<EditComponent v-model="internalValue" :configurationValues="configurationValues" :dataEntryMode="dataEntryMode" />
 `
 });

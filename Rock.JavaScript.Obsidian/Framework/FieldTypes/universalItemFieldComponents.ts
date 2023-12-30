@@ -100,7 +100,7 @@ export const ConfigurationComponent = defineComponent({
         // properties to be retrieved from the server.
         watch(internalValue, (newValue, oldValue) => {
             if (maybeUpdateModelValue()) {
-                for (const key of Object.keys(oldValue)) {
+                for (const key of Object.keys(newValue)) {
                     if (oldValue[key] === newValue[key]) {
                         continue;
                     }

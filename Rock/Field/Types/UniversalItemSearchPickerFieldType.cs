@@ -38,6 +38,9 @@ namespace Rock.Field.Types
         protected sealed override bool IsMultipleSelection => false;
 
         /// <inheritdoc/>
+        internal sealed override bool IsMultipleFilterSelection => false;
+
+        /// <inheritdoc/>
         public sealed override bool HasFilterControl()
         {
             return true;
