@@ -53,6 +53,7 @@ namespace Rock.Field.Types
                 return new Dictionary<string, string>
                 {
                     ["iconCssClass"] = GetItemIconCssClass( privateConfigurationValues ),
+                    ["isMultiple"] = IsMultipleSelection.ToString(),
                     ["rootRestUrl"] = GetRootRestUrl( privateConfigurationValues )
                 };
             }

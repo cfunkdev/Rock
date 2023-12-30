@@ -18,10 +18,16 @@ import { Component } from "vue";
 import { ComparisonType } from "@Obsidian/Enums/Reporting/comparisonType";
 import { defineAsyncComponent } from "@Obsidian/Utility/component";
 import { FieldTypeBase } from "./fieldType";
+import { asBoolean } from "@Obsidian/Utility/booleanUtils";
 
 // The edit component can be quite large, so load it only as needed.
 const editComponent = defineAsyncComponent(async () => {
     return (await import("./universalItemPickerFieldComponents")).EditComponent;
+});
+
+// The filter component can be quite large, so load it only as needed.
+const filterComponent = defineAsyncComponent(async () => {
+    return (await import("./universalItemPickerFieldComponents")).FilterComponent;
 });
 
 // The configuration component can be quite large, so load it only as needed.
@@ -33,7 +39,7 @@ const configurationComponent = defineAsyncComponent(async () => {
  * The field type handler for the Universal Item Picker field types.
  */
 export class UniversalItemPickerFieldType extends FieldTypeBase {
-    public override getTextValue(value: string, _configurationValues: Record<string, string>): string {
+    public override getTextValue(value: string): string {
         return value;
     }
 
@@ -41,14 +47,20 @@ export class UniversalItemPickerFieldType extends FieldTypeBase {
         return editComponent;
     }
 
+    public override getFilterComponent(): Component | null {
+        return filterComponent;
+    }
+
     public override getConfigurationComponent(): Component {
         return configurationComponent;
     }
 
-    public override getSupportedComparisonTypes(): ComparisonType {
-        // TODO: This function needs to be updated to take configuration
-        // values, probably the other get...Component() functions too.
-        // This would allow us to check if multiple select is supported.
-        return ComparisonType.EqualTo | ComparisonType.NotEqualTo;
+    public override getSupportedComparisonTypes(configurationValues: Record<string, string>): ComparisonType {
+        if (asBoolean(configurationValues["isMultiple"]) === true) {
+            return ComparisonType.Contains | ComparisonType.DoesNotContain | ComparisonType.IsBlank;
+        }
+        else {
+            return ComparisonType.EqualTo | ComparisonType.NotEqualTo;
+        }
     }
 }

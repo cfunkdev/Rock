@@ -20,8 +20,10 @@ import TreeItemPicker from "@Obsidian/Controls/treeItemPicker.obs";
 import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 import { TreeItemBag } from "@Obsidian/ViewModels/Utility/treeItemBag";
 import { post } from "@Obsidian/Utility/http";
-import { updateRefValue } from "@Obsidian/Utility/component";
+import { updateRefValue, useVModelPassthrough } from "@Obsidian/Utility/component";
 import { ITreeItemProvider } from "@Obsidian/Utility/treeItemProviders";
+import { asBoolean } from "@Obsidian/Utility/booleanUtils";
+import { DataEntryMode } from "@Obsidian/Utility/fieldTypes";
 
 type UniversalTreeItemPickerOptionsBag = {
     securityGrantToken?: string | null;
@@ -120,7 +122,9 @@ export const EditComponent = defineComponent({
             return props.configurationValues["iconCssClass"] ?? "";
         });
 
-        const multiple = computed((): boolean => false);
+        const multiple = computed((): boolean => {
+            return asBoolean(props.configurationValues["isMultiple"]);
+        });
 
         const rules = computed((): string => {
             return isRequired ? "required" : "";
@@ -164,4 +168,41 @@ export const EditComponent = defineComponent({
 `
 });
 
-export const FilterComponent = EditComponent;
+export const FilterComponent = defineComponent({
+    name: "UniversalTreeItemPickerField.Filter",
+
+    components: {
+        EditComponent
+    },
+
+    props: getFieldEditorProps(),
+
+    setup(props, { emit }) {
+        const internalValue = useVModelPassthrough(props, "modelValue", emit);
+        const dataEntryMode = computed((): DataEntryMode => props.dataEntryMode);
+
+        const configurationValues = computed((): Record<string, string> => {
+            const values = {...props.configurationValues};
+
+            // Invert the multiple state for the filter component.
+            if (asBoolean(values["isMultiple"])) {
+                values["isMultiple"] = "false";
+            }
+            else {
+                values["isMultiple"] = "true";
+            }
+
+            return values;
+        });
+
+        return {
+            configurationValues,
+            dataEntryMode,
+            internalValue
+        };
+    },
+
+    template: `
+<EditComponent v-model="internalValue" configurationValues="configurationValues" dataEntryMode="dataEntryMode" />
+`
+});

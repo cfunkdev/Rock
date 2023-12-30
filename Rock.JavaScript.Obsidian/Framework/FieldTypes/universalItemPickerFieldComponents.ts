@@ -20,9 +20,10 @@ import CheckBoxList from "@Obsidian/Controls/checkBoxList.obs";
 import BaseAsyncPicker from "@Obsidian/Controls/baseAsyncPicker.obs";
 import { toNumberOrNull } from "@Obsidian/Utility/numberUtils";
 import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
-import { updateRefValue } from "@Obsidian/Utility/component";
+import { updateRefValue, useVModelPassthrough } from "@Obsidian/Utility/component";
 import { asBoolean } from "@Obsidian/Utility/booleanUtils";
 import { PickerDisplayStyle } from "@Obsidian/Enums/Controls/pickerDisplayStyle";
+import { DataEntryMode } from "@Obsidian/Utility/fieldTypes";
 
 export const EditComponent = defineComponent({
     name: "UniversalItemPickerField.Edit",
@@ -42,7 +43,7 @@ export const EditComponent = defineComponent({
             try {
                 const providedOptions = JSON.parse(props.configurationValues["items"] ?? "[]") as ListItemBag[];
 
-                if (isRadioButtons && !isRequired) {
+                if (!isMultiple && !isRequired) {
                     providedOptions.unshift({
                         text: "None",
                         value: ""
@@ -78,8 +79,8 @@ export const EditComponent = defineComponent({
             return toNumberOrNull(props.configurationValues["columnCount"]) ?? 0;
         });
 
-        const isRadioButtons = computed((): boolean => {
-            return !asBoolean(props.configurationValues["multiple"]);
+        const isMultiple = computed((): boolean => {
+            return asBoolean(props.configurationValues["isMultiple"]);
         });
 
         function getModelValue(): ListItemBag | ListItemBag[] | null {
@@ -113,6 +114,7 @@ export const EditComponent = defineComponent({
 <BaseAsyncPicker v-model="internalValue"
                  :items="items"
                  :isRequired="isRequired"
+                 :multiple="isMultiple"
                  :enhanceForLongLists="enhanceForLongLists"
                  :columnCount="columnCount"
                  :displayStyle="displayStyle"
@@ -124,40 +126,37 @@ export const FilterComponent = defineComponent({
     name: "UniversalItemPickerField.Filter",
 
     components: {
-        CheckBoxList
+        EditComponent
     },
 
     props: getFieldEditorProps(),
 
     setup(props, { emit }) {
-        const internalValue = ref(props.modelValue.split(",").filter(v => v !== ""));
+        const internalValue = useVModelPassthrough(props, "modelValue", emit);
+        const dataEntryMode = computed((): DataEntryMode => props.dataEntryMode);
 
-        const options = computed((): ListItemBag[] => {
-            try {
-                const providedOptions = JSON.parse(props.configurationValues["items"] ?? "[]") as ListItemBag[];
+        const configurationValues = computed((): Record<string, string> => {
+            const values = {...props.configurationValues};
 
-                return providedOptions;
+            // Invert the multiple state for the filter component.
+            if (asBoolean(values["isMultiple"])) {
+                values["isMultiple"] = "false";
             }
-            catch {
-                return [];
+            else {
+                values["isMultiple"] = "true";
             }
-        });
 
-        watch(() => props.modelValue, () => {
-            updateRefValue(internalValue, props.modelValue.split(",").filter(v => v !== ""));
-        });
-
-        watch(internalValue, () => {
-            emit("update:modelValue", internalValue.value.join(","));
+            return values;
         });
 
         return {
-            internalValue,
-            options
+            configurationValues,
+            dataEntryMode,
+            internalValue
         };
     },
 
     template: `
-<CheckBoxList v-model="internalValue" :items="options" horizontal />
+<EditComponent v-model="internalValue" configurationValues="configurationValues" dataEntryMode="dataEntryMode" />
 `
 });

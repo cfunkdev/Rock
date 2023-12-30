@@ -100,7 +100,7 @@
         }
 
         // Field type has final say if a default value should be shown.
-        return fieldType.value?.hasDefaultComponent() ?? false;
+        return fieldType.value?.hasDefaultComponent(configurationValues.value) ?? false;
     });
 
     /** True if the field types options are ready for display. */

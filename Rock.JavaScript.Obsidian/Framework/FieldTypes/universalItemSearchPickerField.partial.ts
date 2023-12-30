@@ -24,6 +24,11 @@ const editComponent = defineAsyncComponent(async () => {
     return (await import("./universalItemSearchPickerFieldComponents")).EditComponent;
 });
 
+// The filter component can be quite large, so load it only as needed.
+const filterComponent = defineAsyncComponent(async () => {
+    return (await import("./universalItemSearchPickerFieldComponents")).FilterComponent;
+});
+
 // The configuration component can be quite large, so load it only as needed.
 const configurationComponent = defineAsyncComponent(async () => {
     return (await import("./universalItemFieldComponents")).ConfigurationComponent;
@@ -33,7 +38,7 @@ const configurationComponent = defineAsyncComponent(async () => {
  * The field type handler for the Universal Tree Item Picker field types.
  */
 export class UniversalItemSearchPickerFieldType extends FieldTypeBase {
-    public override getTextValue(value: string, _configurationValues: Record<string, string>): string {
+    public override getTextValue(value: string): string {
         return value;
     }
 
@@ -41,14 +46,15 @@ export class UniversalItemSearchPickerFieldType extends FieldTypeBase {
         return editComponent;
     }
 
+    public override getFilterComponent(): Component | null {
+        return filterComponent;
+    }
+
     public override getConfigurationComponent(): Component {
         return configurationComponent;
     }
 
     public override getSupportedComparisonTypes(): ComparisonType {
-        // TODO: This function needs to be updated to take configuration
-        // values, probably the other get...Component() functions too.
-        // This would allow us to check if multiple select is supported.
         return ComparisonType.EqualTo | ComparisonType.NotEqualTo;
     }
 }

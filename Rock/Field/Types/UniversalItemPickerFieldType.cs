@@ -54,6 +54,7 @@ namespace Rock.Field.Types
                     ["columnCount"] = GetColumnCount( privateConfigurationValues ).ToStringSafe(),
                     ["displayStyle"] = GetDisplayStyle( privateConfigurationValues ).ConvertToInt().ToStringSafe(),
                     ["enhanceForLongLists"] = GetEnhanceForLongLists( privateConfigurationValues ).ToString(),
+                    ["isMultiple"] = IsMultipleSelection.ToString(),
                     ["items"] = GetListItems( privateConfigurationValues ).ToCamelCaseJson( false, true )
                 };
             }
