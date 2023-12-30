@@ -16,7 +16,6 @@
 //
 import { computed, defineComponent, inject, ref, watch } from "vue";
 import { getFieldEditorProps } from "./utils";
-import CheckBoxList from "@Obsidian/Controls/checkBoxList.obs";
 import TreeItemPicker from "@Obsidian/Controls/treeItemPicker.obs";
 import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 import { TreeItemBag } from "@Obsidian/ViewModels/Utility/treeItemBag";
@@ -165,44 +164,4 @@ export const EditComponent = defineComponent({
 `
 });
 
-export const FilterComponent = defineComponent({
-    name: "UniversalTreeItemPickerField.Filter",
-
-    components: {
-        CheckBoxList
-    },
-
-    props: getFieldEditorProps(),
-
-    setup(props, { emit }) {
-        const internalValue = ref(props.modelValue.split(",").filter(v => v !== ""));
-
-        const options = computed((): ListItemBag[] => {
-            try {
-                const providedOptions = JSON.parse(props.configurationValues["items"] ?? "[]") as ListItemBag[];
-
-                return providedOptions;
-            }
-            catch {
-                return [];
-            }
-        });
-
-        watch(() => props.modelValue, () => {
-            updateRefValue(internalValue, props.modelValue.split(",").filter(v => v !== ""));
-        });
-
-        watch(internalValue, () => {
-            emit("update:modelValue", internalValue.value.join(","));
-        });
-
-        return {
-            internalValue,
-            options
-        };
-    },
-
-    template: `
-<CheckBoxList v-model="internalValue" :items="options" horizontal />
-`
-});
+export const FilterComponent = EditComponent;

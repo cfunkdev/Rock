@@ -33,7 +33,7 @@ const configurationComponent = defineAsyncComponent(async () => {
  * The field type handler for the Universal Item Picker field types.
  */
 export class UniversalItemPickerFieldType extends FieldTypeBase {
-    public override getTextValue(value: string, configurationValues: Record<string, string>): string {
+    public override getTextValue(value: string, _configurationValues: Record<string, string>): string {
         return value;
     }
 

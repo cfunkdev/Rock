@@ -16,7 +16,6 @@
 //
 import { computed, defineComponent, inject, ref, watch } from "vue";
 import { getFieldEditorProps } from "./utils";
-import CheckBoxList from "@Obsidian/Controls/checkBoxList.obs";
 import UniversalItemSearchPicker from "@Obsidian/Controls/Internal/universalItemSearchPicker.obs";
 import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 import { updateRefValue } from "@Obsidian/Utility/component";
