@@ -176,6 +176,7 @@ namespace Rock.Field.Types
     }
 
     [Rock.SystemGuid.FieldTypeGuid( "8ba19292-e46a-445a-9b54-9a547b9d9521" )]
+    [FieldTypeUsage( FieldTypeUsage.Advanced )]
     public class DanielTreeTestFieldType : UniversalTreeItemPickerFieldType
     {
         /// <inheritdoc/>

@@ -183,6 +183,7 @@ namespace Rock.Field.Types
     }
 
     [Rock.SystemGuid.FieldTypeGuid( "29a71bc3-bd14-461a-816d-b44dcedfd3b5" )]
+    [FieldTypeUsage( FieldTypeUsage.Advanced )]
     public class DanielSearchFieldType : UniversalItemSearchPickerFieldType
     {
         protected override string GetSearchUrl( Dictionary<string, string> privateConfigurationValues )

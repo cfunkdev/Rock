@@ -16,7 +16,6 @@
 //
 import { computed, defineComponent, inject, ref, watch } from "vue";
 import { getFieldEditorProps } from "./utils";
-import CheckBoxList from "@Obsidian/Controls/checkBoxList.obs";
 import BaseAsyncPicker from "@Obsidian/Controls/baseAsyncPicker.obs";
 import { toNumberOrNull } from "@Obsidian/Utility/numberUtils";
 import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";

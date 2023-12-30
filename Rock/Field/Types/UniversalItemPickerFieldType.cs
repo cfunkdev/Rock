@@ -357,6 +357,7 @@ namespace Rock.Field.Types
     [IntegerField( "Column Count", Key = "ColumnCount", IsRequired = false, Order = 2 )]
     [BooleanField( "LongList", Key = "LongList", Order = 3 )]
     [Rock.SystemGuid.FieldTypeGuid( "47622385-3fd7-4344-80f4-0e51890d8489" )]
+    [FieldTypeUsage( FieldTypeUsage.Advanced )]
     public class DanielTestFieldType : UniversalItemPickerFieldType
     {
         /// <inheritdoc/>
@@ -419,6 +420,7 @@ namespace Rock.Field.Types
     [IntegerField( "Column Count", Key = "ColumnCount", IsRequired = false, Order = 2 )]
     [BooleanField( "LongList", Key = "LongList", Order = 3 )]
     [Rock.SystemGuid.FieldTypeGuid( "5ec8c7f9-a2d4-4760-a272-9fbe259e45b9" )]
+    [FieldTypeUsage( FieldTypeUsage.Advanced )]
     public class DanielMultiTestFieldType : UniversalItemPickerFieldType
     {
         /// <inheritdoc/>
