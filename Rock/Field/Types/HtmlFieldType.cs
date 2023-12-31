@@ -39,6 +39,7 @@ namespace Rock.Field.Types
         private const string DOCUMENT_FOLDER_ROOT = "documentfolderroot";
         private const string IMAGE_FOLDER_ROOT = "imagefolderroot";
         private const string USER_SPECIFIC_ROOT = "userspecificroot";
+        private const string DISPLAY_CONTENT_WHEN_EDITING = "displayContentWhenEditing";
 
         #endregion
 
@@ -144,6 +145,13 @@ namespace Rock.Field.Types
             cbUserSpecificFolder.Label = "User Specific Folders";
             cbUserSpecificFolder.Text = "Yes";
             cbUserSpecificFolder.Help = "Should the root folders be specific to current user?";
+
+            var cbDisplayContentWhenEditing = new RockCheckBox();
+            controls.Add( cbDisplayContentWhenEditing );
+            cbDisplayContentWhenEditing.Label = "Display Content When Editing";
+            cbDisplayContentWhenEditing.Text = "Yes";
+            cbDisplayContentWhenEditing.Help = "The normal edit control will be replaced with the rendered content with this setting is enabled.";
+
             return controls;
         }
 
@@ -159,6 +167,7 @@ namespace Rock.Field.Types
             configurationValues.Add( DOCUMENT_FOLDER_ROOT, new ConfigurationValue( "Document Root Folder", "The folder to use as the root when browsing or uploading documents ( e.g. ~/Content ).", "" ) );
             configurationValues.Add( IMAGE_FOLDER_ROOT, new ConfigurationValue( "Image Root Folder", "The folder to use as the root when browsing or uploading images ( e.g. ~/Content ).", "" ) );
             configurationValues.Add( USER_SPECIFIC_ROOT, new ConfigurationValue( "User Specific Folders", "Should the root folders be specific to current user?", "" ) );
+            configurationValues.Add( DISPLAY_CONTENT_WHEN_EDITING, new ConfigurationValue() );
 
             if ( controls.Count > 0 && controls[0] is RockDropDownList )
             {
@@ -178,6 +187,11 @@ namespace Rock.Field.Types
             if ( controls.Count > 3 && controls[3] is RockCheckBox )
             {
                 configurationValues[USER_SPECIFIC_ROOT].Value = ( ( RockCheckBox ) controls[3] ).Checked.ToString();
+            }
+
+            if ( controls.Count > 4 && controls[4] is RockCheckBox cbDisplayContentWhenEditing )
+            {
+                configurationValues[DISPLAY_CONTENT_WHEN_EDITING].Value = cbDisplayContentWhenEditing.Checked.ToString();
             }
 
             return configurationValues;
@@ -211,6 +225,11 @@ namespace Rock.Field.Types
                 {
                     ( ( RockCheckBox ) controls[3] ).Checked = configurationValues[USER_SPECIFIC_ROOT].Value.AsBoolean();
                 }
+
+                if ( controls.Count > 4 && controls[4] is RockCheckBox cbDisplayContentWhenEditing && configurationValues.ContainsKey( DISPLAY_CONTENT_WHEN_EDITING ) )
+                {
+                    cbDisplayContentWhenEditing.Checked = configurationValues[DISPLAY_CONTENT_WHEN_EDITING].Value.AsBoolean();
+                }
             }
         }
 
@@ -224,6 +243,19 @@ namespace Rock.Field.Types
         /// </returns>
         public override Control EditControl( Dictionary<string, ConfigurationValue> configurationValues, string id )
         {
+            var dataEntryMode = configurationValues.GetConfigurationValueAsString( "DataEntryMode" ).ToLower();
+
+            if ( dataEntryMode != "defaultvalue" )
+            {
+                if ( configurationValues.ContainsKey( DISPLAY_CONTENT_WHEN_EDITING ) && configurationValues[DISPLAY_CONTENT_WHEN_EDITING].Value.AsBoolean() )
+                {
+                    return new LiteralControl
+                    {
+                        ID = id
+                    };
+                }
+            }
+
             var editor = new HtmlEditor { ID = id };
 
             if ( configurationValues != null &&
@@ -253,6 +285,33 @@ namespace Rock.Field.Types
             }
 
             return editor;
+        }
+
+        /// <inheritdoc/>
+        public override void SetEditValue( Control control, Dictionary<string, ConfigurationValue> configurationValues, string value )
+        {
+            if ( control is LiteralControl ltContent )
+            {
+                ltContent.Text = value;
+            }
+            else
+            {
+                base.SetEditValue( control, configurationValues, value );
+            }
+        }
+
+        /// <inheritdoc/>
+        public override string GetEditValue( Control control, Dictionary<string, ConfigurationValue> configurationValues )
+        {
+            if ( control is LiteralControl ltContent )
+            {
+                return ltContent.Text;
+            }
+            else
+            {
+                return base.GetEditValue( control, configurationValues );
+
+            }
         }
 
         /// <summary>
