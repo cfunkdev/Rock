@@ -346,5 +346,10 @@ namespace Rock.SystemGuid
         /// The post update data migraiton job to remove legacy preference attributes.
         /// </summary>
         public const string DATA_MIGRATIONS_170_REMOVE_LEGACY_PREFERENCES = "46d98280-7611-4588-831d-6924e2be9da6";
+
+        /// <summary>
+        /// The <see cref="Rock.Jobs.UpdateAnalyticsSourceZipCode" /> job.
+        /// </summary>
+        public const string UPDATE_ANALYTICS_SOURCE_ZIPCODE = "29731D97-699D-4D34-A9F4-50C7C33D5C48";
     }
 }
