@@ -1573,6 +1573,11 @@ namespace RockWeb.Blocks.WorkFlow
 
                 if ( formPersonEntrySettings.HideIfCurrentPersonKnown )
                 {
+                    if ( CurrentPerson.PrimaryFamily == null )
+                    {
+                        CurrentPerson.PrimaryFamily = GetFamily( CurrentPerson );
+                    }
+
                     SavePersonEntryToAttributeValues( existingPersonId.Value, existingPersonSpouseId, CurrentPerson.PrimaryFamily );
                     return;
                 }
@@ -1616,7 +1621,7 @@ namespace RockWeb.Blocks.WorkFlow
             int? personEntryPersonSpouseId = null;
 
             var personService = new PersonService( personEntryRockContext );
-            var primaryFamily = personService.GetSelect( personEntryPersonId, s => s.PrimaryFamily );
+            var primaryFamily = personService.GetSelect( personEntryPersonId, s => s.PrimaryFamily ) ?? GetFamily( personEntryPerson );
 
             if ( pePerson2.Visible )
             {
@@ -1658,8 +1663,8 @@ namespace RockWeb.Blocks.WorkFlow
                         personEntryPerson.MaritalStatusValueId = maritalStatusMarriedValueId;
                     }
 
-                    PersonService.AddPersonToFamily( personEntryPersonSpouse, true, primaryFamily.Id, pePerson2.PersonGroupRoleId, personEntryRockContext );
-                }
+                        PersonService.AddPersonToFamily( personEntryPersonSpouse, true, primaryFamily.Id, pePerson2.PersonGroupRoleId, personEntryRockContext );
+                    }
 
                 personEntryRockContext.SaveChanges();
 
@@ -1713,6 +1718,57 @@ namespace RockWeb.Blocks.WorkFlow
             }
 
             personEntryRockContext.SaveChanges();
+        }
+
+        private Group GetFamily( Person person )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                Group family = null;
+                var familyGroupType = GroupTypeCache.GetFamilyGroupType();
+                var groupService = new GroupService( rockContext );
+                var groupMemberService = new GroupMemberService( rockContext );
+                if ( person.PrimaryFamilyId.HasValue )
+                {
+                    family = groupService.Get( person.PrimaryFamilyId.Value );
+                }
+
+                if ( family == null )
+                {
+                    family = groupMemberService.Queryable()
+                        .Where( gm => gm.PersonId == person.Id && gm.GroupTypeId == familyGroupType.Id )
+                        .Select( gm => gm.Group )
+                        .FirstOrDefault();
+                }
+
+                if ( family == null )
+                {
+                    family = new Rock.Model.Group
+                    {
+                        Name = person.LastName,
+                        GroupTypeId = familyGroupType.Id,
+                        CampusId = person.PrimaryCampusId
+                    };
+
+                    groupService.Add( family );
+                    rockContext.SaveChanges();
+
+                    var adultRoleId = familyGroupType.Roles.Find( r => r.Guid == Rock.SystemGuid.GroupRole.GROUPROLE_FAMILY_MEMBER_ADULT.AsGuid() ).Id;
+                    var familyMember = new GroupMember
+                    {
+                        GroupId = family.Id,
+                        PersonId = person.Id,
+                        GroupRoleId = familyGroupType.DefaultGroupRoleId ?? adultRoleId,
+                        GroupMemberStatus = GroupMemberStatus.Active
+                    };
+
+                    groupMemberService.Add( familyMember );
+
+                    rockContext.SaveChanges();
+                }
+
+                return family;
+            }
         }
 
         /// <summary>
