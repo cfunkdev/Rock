@@ -38,6 +38,12 @@ export const EditComponent = defineComponent({
         // The internal value used by the text editor.
         const internalValue = ref<string[]>([]);
 
+        // The selected Entity Type.
+        const entityTypeGuid = computed((): string | null | undefined => {
+            const entityType = JSON.parse(props.configurationValues[ConfigurationValueKey.Entitytype] || "{}") as ListItemBag;
+            return entityType?.value;
+        });
+
         // The options to choose from.
         const options = computed((): ListItemBag[] => {
             const attributes = JSON.parse(props.configurationValues[ConfigurationValueKey.ClientValues] || "[]") as ListItemBag[];
@@ -59,18 +65,19 @@ export const EditComponent = defineComponent({
 
         // Watch for changes from the client UI and update the parent component.
         watch(internalValue, () => {
-            emit("update:modelValue", JSON.stringify(internalValue.value));
+            emit("update:modelValue", allowMultiple.value == true ? JSON.stringify(internalValue.value) : internalValue.value);
         });
 
         return {
             internalValue,
             options,
-            allowMultiple
+            allowMultiple,
+            entityTypeGuid
         };
     },
 
     template: `
-    <DropDownList v-model="internalValue" :items="options" :showBlankItem="true" :multiple="allowMultiple" enhanceForLongLists />
+    <DropDownList v-if="entityTypeGuid" v-model="internalValue" :items="options" :showBlankItem="true" :multiple="allowMultiple" enhanceForLongLists />
 `
 });
 
@@ -147,7 +154,7 @@ export const ConfigurationComponent = defineComponent({
             allowMultiple.value = asBoolean(props.modelValue[ConfigurationValueKey.AllowMultiple]);
             qualifierColumn.value = props.modelValue[ConfigurationValueKey.QualifierColumn];
             qualifierValue.value = props.modelValue[ConfigurationValueKey.QualifierValue];
-            entityType.value = JSON.parse(props.modelValue[ConfigurationValueKey.Entitytype] || "{}");
+            entityType.value = JSON.parse(props.modelValue[ConfigurationValueKey.Entitytype] || "{}") as ListItemBag;
         }, {
             immediate: true
         });
@@ -175,7 +182,7 @@ export const ConfigurationComponent = defineComponent({
     },
 
     template: `
-<EntityTypePicker v-model="entityType" label="Entity Type" :multiple="false" :includeGlobalOption="false" help="The Entity Type to select attributes for." />
+<EntityTypePicker v-model="entityType" label="Entity Type" :multiple="false" :includeGlobalOption="false" help="The Entity Type to select attributes for." showBlankItem />
 <CheckBox v-model="allowMultiple" label="Allow Multiple Values" text="Yes" help="When set, allows multiple system phone numbers to be selected." />
 <TextBox v-model="qualifierColumn" label="Qualifier Column" help="Entity column qualifier" />
 <TextBox v-model="qualifierValue" label="Qualifier Value" help="Entity column value" />

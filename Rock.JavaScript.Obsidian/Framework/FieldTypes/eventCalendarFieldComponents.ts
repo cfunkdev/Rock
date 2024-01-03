@@ -40,7 +40,7 @@ export const EditComponent = defineComponent({
 
         // Watch for changes from the Event Calendar picker and update the parent component.
         watch(() => internalValue.value, () => {
-            emit("update:modelValue", JSON.stringify(internalValue.value));
+            emit("update:modelValue", internalValue.value ? JSON.stringify(internalValue.value) : "");
         });
 
         return {
@@ -49,7 +49,7 @@ export const EditComponent = defineComponent({
     },
 
     template: `
-    <EventCalendarPicker v-model="internalValue" />
+    <EventCalendarPicker v-model="internalValue" showBlankItem />
 `
 });
 

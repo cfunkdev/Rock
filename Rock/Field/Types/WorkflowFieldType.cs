@@ -65,13 +65,10 @@ namespace Rock.Field.Types
 
             if ( usage != ConfigurationValueUsage.View && configurationValues.TryGetValue( WORKFLOW_TYPE_KEY, out string workflowTypeIdString ) && int.TryParse( workflowTypeIdString, out int workflowTypeId ) )
             {
-                using ( var rockContext = new RockContext() )
+                var workflowGuid = WorkflowTypeCache.GetGuid( workflowTypeId );
+                if ( workflowGuid != null )
                 {
-                    var workflowGuid = new WorkflowTypeService( rockContext ).GetGuid( workflowTypeId );
-                    if ( workflowGuid != null )
-                    {
-                        configurationValues[WORKFLOW_TYPE_KEY] = workflowGuid.ToString();
-                    }
+                    configurationValues[WORKFLOW_TYPE_KEY] = workflowGuid.ToString();
                 }
             }
 
@@ -85,13 +82,10 @@ namespace Rock.Field.Types
 
             if ( configurationValues.TryGetValue( WORKFLOW_TYPE_KEY, out string workflowTypeIdString ) && Guid.TryParse( workflowTypeIdString, out Guid workflowTypeGuid ) )
             {
-                using ( var rockContext = new RockContext() )
+                var workflowId = WorkflowTypeCache.GetId( workflowTypeGuid );
+                if ( workflowId != null )
                 {
-                    var workflowId = new WorkflowTypeService( rockContext ).GetId( workflowTypeGuid );
-                    if ( workflowId != null )
-                    {
-                        configurationValues[WORKFLOW_TYPE_KEY] = workflowId.ToString();
-                    }
+                    configurationValues[WORKFLOW_TYPE_KEY] = workflowId.ToString();
                 }
             }
 

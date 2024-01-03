@@ -70,31 +70,34 @@ namespace Rock.Field.Types
 
                 WorkflowType workflowType = null;
 
-                if ( workflowTypeGuid.HasValue )
+                using ( var rockContext = new RockContext() )
                 {
-                    var workflowTypeService = new WorkflowTypeService( new RockContext() );
-                    workflowType = workflowTypeService.Get( workflowTypeGuid.Value );
-                }
-
-                if ( workflowType == null )
-                {
-                    workflowType = GetContextWorkflowType();
-                }
-
-                if ( workflowType != null )
-                {
-                    var workflowActivityTypes = workflowType.ActivityTypes;
-
-                    if ( workflowActivityTypes?.Any() == true )
+                    if ( workflowTypeGuid.HasValue )
                     {
-                        var activityTypes = new List<ListItemBag>();
+                        var workflowTypeService = new WorkflowTypeService( rockContext );
+                        workflowType = workflowTypeService.Get( workflowTypeGuid.Value );
+                    }
 
-                        foreach ( var activityType in workflowActivityTypes.OrderBy( a => a.Order ) )
+                    if ( workflowType == null )
+                    {
+                        workflowType = GetContextWorkflowType();
+                    }
+
+                    if ( workflowType != null )
+                    {
+                        var workflowActivityTypes = workflowType.ActivityTypes;
+
+                        if ( workflowActivityTypes?.Any() == true )
                         {
-                            activityTypes.Add( new ListItemBag() { Text = activityType.Name ?? "[New Activity]", Value = activityType.Guid.ToString().ToUpper() } );
-                        }
+                            var activityTypes = new List<ListItemBag>();
 
-                        configurationValues[CLIENT_VALUES_KEY] = activityTypes.ToCamelCaseJson( false, true );
+                            foreach ( var activityType in workflowActivityTypes.OrderBy( a => a.Order ) )
+                            {
+                                activityTypes.Add( new ListItemBag() { Text = activityType.Name ?? "[New Activity]", Value = activityType.Guid.ToString().ToUpper() } );
+                            }
+
+                            configurationValues[CLIENT_VALUES_KEY] = activityTypes.ToCamelCaseJson( false, true );
+                        }
                     }
                 }
             }

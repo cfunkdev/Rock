@@ -72,7 +72,6 @@ namespace Rock.Field.Types
                     }
                 }
 
-
                 configurationValues[CLIENT_VALUES_KEY] = attributeFieldTypes.ToCamelCaseJson( false, true );
             }
 

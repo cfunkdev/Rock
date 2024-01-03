@@ -37,6 +37,7 @@ namespace Rock.Field.Types
     /// <summary>
     /// Field Type used to display a dropdown list of attributes
     /// </summary>
+    [FieldTypeUsage( FieldTypeUsage.System )]
     [RockPlatformSupport( Utility.RockPlatform.WebForms, Utility.RockPlatform.Obsidian )]
     [Rock.SystemGuid.FieldTypeGuid( Rock.SystemGuid.FieldType.ATTRIBUTE )]
     public class AttributeFieldType : FieldType, ICachedEntitiesFieldType, IEntityFieldType, IEntityReferenceFieldType
@@ -63,30 +64,33 @@ namespace Rock.Field.Types
                     var entityType = EntityTypeCache.Get( entityTypeGuid.Value );
                     if ( entityType != null )
                     {
-                        Rock.Model.AttributeService attributeService = new Model.AttributeService( new RockContext() );
-                        IQueryable<Rock.Model.Attribute> attributeQuery;
-                        if ( configurationValues.ContainsKey( QUALIFIER_COLUMN_KEY ) && configurationValues.ContainsKey( QUALIFIER_VALUE_KEY ) )
+                        using ( var rockContext = new RockContext() )
                         {
-                            attributeQuery = attributeService
-                                .GetByEntityTypeQualifier( entityType.Id, configurationValues[QUALIFIER_COLUMN_KEY], configurationValues[QUALIFIER_VALUE_KEY], true );
-                        }
-                        else
-                        {
-                            attributeQuery = attributeService.GetByEntityTypeId( entityType.Id, true );
-                        }
-
-                        List<AttributeCache> attributeList = attributeQuery.ToAttributeCacheList();
-
-                        if ( attributeList.Any() )
-                        {
-                            foreach ( var attribute in attributeList.OrderBy( a => a.Name ) )
+                            Rock.Model.AttributeService attributeService = new Model.AttributeService( rockContext );
+                            IQueryable<Rock.Model.Attribute> attributeQuery;
+                            if ( configurationValues.ContainsKey( QUALIFIER_COLUMN_KEY ) && configurationValues.ContainsKey( QUALIFIER_VALUE_KEY ) )
                             {
-                                attributes.Add( new ListItemBag() { Text = attribute.Name, Value = attribute.Guid.ToString() } );
+                                attributeQuery = attributeService
+                                    .GetByEntityTypeQualifier( entityType.Id, configurationValues[QUALIFIER_COLUMN_KEY], configurationValues[QUALIFIER_VALUE_KEY], true );
                             }
-                        }
+                            else
+                            {
+                                attributeQuery = attributeService.GetByEntityTypeId( entityType.Id, true );
+                            }
 
-                        configurationValues[CLIENT_VALUES] = attributes.ToCamelCaseJson( false, true );
-                        configurationValues[ENTITY_TYPE_KEY] = entityType.ToListItemBag().ToCamelCaseJson( false, true );
+                            List<AttributeCache> attributeList = attributeQuery.ToAttributeCacheList();
+
+                            if ( attributeList.Any() )
+                            {
+                                foreach ( var attribute in attributeList.OrderBy( a => a.Name ) )
+                                {
+                                    attributes.Add( new ListItemBag() { Text = attribute.Name, Value = attribute.Guid.ToString() } );
+                                }
+                            }
+
+                            configurationValues[CLIENT_VALUES] = attributes.ToCamelCaseJson( false, true );
+                            configurationValues[ENTITY_TYPE_KEY] = entityType.ToListItemBag().ToCamelCaseJson( false, true );
+                        }
                     }
                 }
             }
@@ -227,7 +231,8 @@ namespace Rock.Field.Types
                 return jsonValue.JoinStrings( "," );
             }
 
-            return base.GetPrivateEditValue( publicValue, privateConfigurationValues );
+            // If value is not an array of string then allowMultiple is probably set to false so save single guid value.
+            return publicValue;
         }
 
         #endregion

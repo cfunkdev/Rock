@@ -91,13 +91,10 @@ namespace Rock.Field.Types
         {
             if ( Guid.TryParse( privateValue, out Guid guid ) )
             {
-                using ( var rockContext = new RockContext() )
+                var workflowTypeCache = WorkflowTypeCache.Get( guid );
+                if ( workflowTypeCache != null )
                 {
-                    var workflowTypeCache = WorkflowTypeCache.Get( guid );
-                    if ( workflowTypeCache != null )
-                    {
-                        return workflowTypeCache.ToListItemBag().ToCamelCaseJson( false, true );
-                    }
+                    return workflowTypeCache.ToListItemBag().ToCamelCaseJson( false, true );
                 }
             }
 

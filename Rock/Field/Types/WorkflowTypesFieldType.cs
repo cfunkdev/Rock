@@ -85,9 +85,7 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public override string GetPublicValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
-            var workflowTypes = GetWorkflowTypes( privateValue );
-
-            return workflowTypes.Select( c => c.Name ).JoinStrings( "," );
+            return GetTextValue( privateValue, privateConfigurationValues );
         }
 
         /// <inheritdoc/>
@@ -111,39 +109,18 @@ namespace Rock.Field.Types
         /// <inheritdoc/>
         public override string GetPublicEditValue( string privateValue, Dictionary<string, string> privateConfigurationValues )
         {
-            var workflowTypeCache = GetWorkflowTypes( privateValue ).ConvertAll( c =>
-                new ListItemBag()
+            if ( !string.IsNullOrWhiteSpace( privateValue ) )
+            {
+                var guids = privateValue.SplitDelimitedValues().AsGuidList();
+
+                if ( guids.Count > 0 )
                 {
-                    Text = c.Name,
-                    Value = c.Guid.ToString()
-                } );
-
-            return workflowTypeCache.ToCamelCaseJson( false, true );
-        }
-
-        /// <summary>
-        /// Converts the saved private value into workflowTypes
-        /// </summary>
-        /// <param name="privateValue">The private value.</param>
-        /// <returns></returns>
-        private List<WorkflowTypeCache> GetWorkflowTypes( string privateValue )
-        {
-            if ( string.IsNullOrWhiteSpace( privateValue ) )
-            {
-                return new List<WorkflowTypeCache>();
+                    var workflowTypes = guids.ConvertAll( c => WorkflowTypeCache.Get( c ) ).ToListItemBagList();
+                    return workflowTypes.ToCamelCaseJson( false, true );
+                }
             }
 
-            var guids = privateValue.SplitDelimitedValues().AsGuidList();
-
-            if ( guids.Count == 0 )
-            {
-                return new List<WorkflowTypeCache>();
-            }
-
-            var workflowTypes = guids.ConvertAll( c => WorkflowTypeCache.Get( c ) )
-                .ToList();
-
-            return workflowTypes;
+            return string.Empty;
         }
 
         #endregion

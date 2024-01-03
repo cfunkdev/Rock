@@ -30,7 +30,7 @@ const configurationComponent = defineAsyncComponent(async () => {
 });
 
 /**
- * The field type handler for the Address field.
+ * The field type handler for the Workflow Types field.
  */
 export class WorkflowTypesFieldType extends FieldTypeBase {
     public override getTextValue(value: string, _configurationValues: Record<string, string>): string {
