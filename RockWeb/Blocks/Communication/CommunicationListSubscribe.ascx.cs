@@ -37,6 +37,7 @@ namespace RockWeb.Blocks.Communication
     [DisplayName( "Communication List Subscribe" )]
     [Category( "Communication" )]
     [Description( "Block that allows a person to manage the communication lists that they are subscribed to" )]
+    [ContextAware( typeof( Person ) )]
 
     #region Block Attributes
 
@@ -101,6 +102,11 @@ namespace RockWeb.Blocks.Communication
         /// </summary>
         private bool showMediumPreference = true;
 
+        /// <summary>
+        /// The person
+        /// </summary>
+        private Person person;
+
         #endregion
 
         #region Base Control Methods
@@ -153,6 +159,7 @@ namespace RockWeb.Blocks.Communication
         /// <param name="e">The <see cref="RepeaterItemEventArgs"/> instance containing the event data.</param>
         protected void rptCommunicationLists_ItemDataBound( object sender, RepeaterItemEventArgs e )
         {
+            var currentPerson = GetPerson();
             var group = e.Item.DataItem as Rock.Model.Group;
             if ( group != null )
             {
@@ -172,7 +179,7 @@ namespace RockWeb.Blocks.Communication
                 var groupMember = personCommunicationListsMember.GetValueOrNull( group.Id );
                 cbCommunicationListIsSubscribed.Checked = groupMember != null && groupMember.GroupMemberStatus == GroupMemberStatus.Active;
 
-                CommunicationType communicationType = CurrentPerson.CommunicationPreference == CommunicationType.SMS ? CommunicationType.SMS : CommunicationType.Email;
+                CommunicationType communicationType = currentPerson.CommunicationPreference == CommunicationType.SMS ? CommunicationType.SMS : CommunicationType.Email;
 
                 // if GroupMember record has SMS or Email specified, that takes precedence over their Person.CommunicationPreference
                 var groupMemberHasSmsOrEmailPreference = groupMember != null && ( groupMember.CommunicationPreference == CommunicationType.SMS || groupMember.CommunicationPreference == CommunicationType.Email );
@@ -227,10 +234,11 @@ namespace RockWeb.Blocks.Communication
 
             using ( var rockContext = new RockContext() )
             {
+                var personId = GetPerson( rockContext )?.Id;
                 int groupId = hfGroupId.Value.AsInteger();
                 var groupMemberService = new GroupMemberService( rockContext );
                 var group = new GroupService( rockContext ).Get( groupId );
-                var groupMemberRecordsForPerson = groupMemberService.Queryable().Where( a => a.GroupId == groupId && a.PersonId == this.CurrentPersonId ).ToList();
+                var groupMemberRecordsForPerson = groupMemberService.Queryable().Where( a => a.GroupId == groupId && a.PersonId == personId ).ToList();
                 if ( groupMemberRecordsForPerson.Any() )
                 {
                     // normally there would be at most 1 group member record for the person, but just in case, mark them all
@@ -269,7 +277,7 @@ namespace RockWeb.Blocks.Communication
                     if ( cbCommunicationListIsSubscribed.Checked )
                     {
                         var groupMember = new GroupMember();
-                        groupMember.PersonId = this.CurrentPersonId.Value;
+                        groupMember.PersonId = personId.Value;
                         groupMember.GroupId = group.Id;
                         int? defaultGroupRoleId = GroupTypeCache.Get( group.GroupTypeId ).DefaultGroupRoleId;
                         if ( defaultGroupRoleId.HasValue )
@@ -313,7 +321,10 @@ namespace RockWeb.Blocks.Communication
         /// </summary>
         protected void BindRepeater()
         {
-            if ( this.CurrentPersonId == null )
+            var currentPerson = GetPerson();
+            var personId = currentPerson?.Id;
+
+            if ( personId == null )
             {
                 return;
             }
@@ -323,7 +334,7 @@ namespace RockWeb.Blocks.Communication
 
             var rockContext = new RockContext();
 
-            var memberOfList = new GroupMemberService( rockContext ).GetByPersonId( CurrentPersonId.Value ).AsNoTracking().Select( a => a.GroupId ).ToList();
+            var memberOfList = new GroupMemberService( rockContext ).GetByPersonId( personId.Value ).AsNoTracking().Select( a => a.GroupId ).ToList();
 
             // Get a list of syncs for the communication list groups where the default role is sync'd AND the current person is NOT a member of
             // This is used to filter out the list of communication lists.
@@ -350,7 +361,7 @@ namespace RockWeb.Blocks.Communication
                 if ( !categoryGuids.Any() )
                 {
                     // if no categories where specified, only show lists that the person has VIEW auth
-                    if ( communicationList.IsAuthorized( Rock.Security.Authorization.VIEW, this.CurrentPerson ) )
+                    if ( communicationList.IsAuthorized( Rock.Security.Authorization.VIEW, currentPerson ) )
                     {
                         viewableCommunicationLists.Add( communicationList );
                     }
@@ -361,7 +372,7 @@ namespace RockWeb.Blocks.Communication
                     if ( categoryGuid.HasValue && categoryGuids.Contains( categoryGuid.Value ) )
                     {
                         var category = CategoryCache.Get( categoryGuid.Value );
-                        if ( !category.IsAuthorized( Rock.Security.Authorization.VIEW, this.CurrentPerson ) )
+                        if ( !category.IsAuthorized( Rock.Security.Authorization.VIEW, currentPerson ) )
                         {
                             continue;
                         }
@@ -382,14 +393,13 @@ namespace RockWeb.Blocks.Communication
             } ).ToList();
 
             var groupIds = viewableCommunicationLists.Select( a => a.Id ).ToList();
-            var personId = this.CurrentPersonId.Value;
 
             showMediumPreference = this.GetAttributeValue( AttributeKey.ShowMediumPreference ).AsBoolean();
 
             personCommunicationListsMember = new GroupMemberService( rockContext )
                 .Queryable()
                 .AsNoTracking()
-                .Where( a => groupIds.Contains( a.GroupId ) && a.PersonId == personId )
+                .Where( a => groupIds.Contains( a.GroupId ) && a.PersonId == personId.Value )
                 .GroupBy( a => a.GroupId )
                 .ToList()
                 .ToDictionary( k => k.Key, v => v.FirstOrDefault() );
@@ -408,7 +418,7 @@ namespace RockWeb.Blocks.Communication
                     // 1. Filter by campus.
                     ( x.CampusId == null || x.CampusId == contextCampus.Id )
                     // 2. OR: Include the communication lists we're already subscribed to.
-                    || ( alwaysIncludeSubscribed && ContainsActivePersonRecord( x.Members, personId ) ) ).ToList();
+                    || ( alwaysIncludeSubscribed && ContainsActivePersonRecord( x.Members, personId.Value ) ) ).ToList();
                 }
             }
 
@@ -422,6 +432,40 @@ namespace RockWeb.Blocks.Communication
         private bool ContainsActivePersonRecord( ICollection<GroupMember> groupMembers, int personId )
         {
             return ( groupMembers?.Any( m => m.PersonId == personId && m.GroupMemberStatus == GroupMemberStatus.Active ) ) ?? false;
+        }
+
+        /// <summary>
+        /// Gets the person's details.
+        /// 1.) Context Entity
+        /// 2.) PersonId parameter
+        /// 3.) Current person
+        /// </summary>
+        /// <returns></returns>
+        private Person GetPerson( RockContext rockContext = null )
+        {
+            if ( person == null )
+            {
+                // 1.) Context Entity
+                person = ContextEntity<Person>();
+
+                if ( person == null )
+                {
+                    // 2.) PersonId parameter
+                    var personId = PageParameter( "PersonId" ).AsIntegerOrNull();
+
+                    if ( personId.HasValue )
+                    {
+                        person = new PersonService(  rockContext ?? new RockContext() ).Get( personId.Value );
+                    }
+                    else
+                    {
+                        // 3.) Current person
+                        person = CurrentPerson;
+                    }
+                }
+            }
+
+            return person;
         }
 
         #endregion
