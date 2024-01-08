@@ -15,6 +15,7 @@
 // </copyright>
 //
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 
@@ -96,6 +97,7 @@ namespace Rock.Jobs
                 var rockContext = new Rock.Data.RockContext();
                 var censusData = AnalyticsSourceZipCode.GetZipCodeCensusData();
                 var query = rockContext.AnalyticsSourceZipCodes.AsQueryable();
+                List<AnalyticsSourceZipCode.ZipCodeBoundary> boundaryData = null;
                 int batchSize = 100;
 
                 // If an attempt has been made try and figure where we left off previously by comparing the last database entry ZipCode with the last Census data ZipCode
@@ -139,12 +141,10 @@ namespace Rock.Jobs
                         }
                     }
 
-                    // Try downloading boundary data so we can update the Census data with it.
-                    var boundaryData = AnalyticsSourceZipCode.DownloadZipCodeBoundaryData();
-
-                    if ( boundaryData.Count > 0 )
+                    // If we successfully downloaded the boundary data.
+                    if ( boundaryData?.Any() == true )
                     {
-                        // Calculate the number of batches needed to save the update records.
+                        // Calculate the number of batches needed to save the updated records.
                         int updateBatches = ( int ) Math.Ceiling( ( double ) censusData.Count / batchSize );
                         for ( int i = 0; i < updateBatches; i++ )
                         {
@@ -177,15 +177,6 @@ namespace Rock.Jobs
                         UpdateLastStatusMessage( $"Saved ZipCode Data ({rockContext.AnalyticsSourceZipCodes.Count()}/{censusData.Count})." );
                         SetAttributeValue( AttributeKey.FailedAttempts, failedAttempts.ToString() );
                     }
-                    else
-                    {
-                        failedAttempts++;
-
-                        SetAttributeValue( AttributeKey.FailedAttempts, failedAttempts.ToString() );
-
-                        this.Result = "Could not download the ZipCode boundary data, so only the Census data was saved.";
-                        throw new RockJobWarningException( this.Result );
-                    }
 
                     rockContext.Dispose();
                 }
@@ -203,30 +194,16 @@ namespace Rock.Jobs
                 // remove all the rows in preparation for rebuild
                 AnalyticsSourceZipCode.ClearTable();
 
-                UpdateLastStatusMessage( "Downloading ZipCode boundary data." );
-                var zipCodeBoundaryData = AnalyticsSourceZipCode.DownloadZipCodeBoundaryData();
-
                 UpdateLastStatusMessage( "Reading ZipCode census data." );
                 var zipCodeCensusData = AnalyticsSourceZipCode.GetZipCodeCensusData();
 
                 UpdateLastStatusMessage( "Saving AnalyticsSourceZipCode." );
-                AnalyticsSourceZipCode.SaveBoundaryAndCensusData( zipCodeBoundaryData, zipCodeCensusData );
+                AnalyticsSourceZipCode.SaveBoundaryAndCensusData( zipCodeCensusData );
 
                 UpdateLastStatusMessage( $"Updated {zipCodeCensusData.Count:N0} ZipCode values." );
 
-                // If something went wrong downloading the ZipCode boundary data DownloadBoundaryData will return an empty list
-                // log it as a failed attempt so on our next pass we jump straight to retrying the download if we go all the
-                // census data this time.
-                if ( zipCodeBoundaryData.Count == 0 )
-                {
-                    this.Result = "Could not download the ZipCode boundary data, so only the Census data was saved.";
-                    throw new RockJobWarningException( this.Result );
-                }
-                else
-                {
-                    failedAttempts = 0;
-                    SetAttributeValue( AttributeKey.FailedAttempts, failedAttempts.ToString() );
-                }
+                failedAttempts = 0;
+                SetAttributeValue( AttributeKey.FailedAttempts, failedAttempts.ToString() );
             }
             catch ( Exception )
             {

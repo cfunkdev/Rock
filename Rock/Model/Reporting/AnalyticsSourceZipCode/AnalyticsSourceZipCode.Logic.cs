@@ -9,6 +9,8 @@ using System.Linq;
 using System.Reflection;
 using System.Xml.Serialization;
 
+using EntityFramework.Utilities;
+
 using Newtonsoft.Json;
 
 using OfficeOpenXml;
@@ -32,57 +34,67 @@ namespace Rock.Model
             // remove all the rows and rebuild
             ClearTable();
 
-            var zipCodeBoundaries = DownloadZipCodeBoundaryData();
             var analyticsZipCodes = GetZipCodeCensusData();
 
-            SaveBoundaryAndCensusData( zipCodeBoundaries, analyticsZipCodes );
+            SaveBoundaryAndCensusData( analyticsZipCodes );
         }
 
         /// <summary>
         /// Combines the Census and boundary components into AnalyticsSourceZipCode entries.
         /// </summary>
-        /// <param name="zipCodeBoundaries">The zip code boundaries.</param>
         /// <param name="analyticsZipCodes">The analytics zip codes.</param>
-        public static void SaveBoundaryAndCensusData( List<ZipCodeBoundary> zipCodeBoundaries, List<AnalyticsSourceZipCode> analyticsZipCodes )
+        /// <param name="zipCodeBoundaries">The zip code boundaries.</param>
+        public static void SaveBoundaryAndCensusData( List<AnalyticsSourceZipCode> analyticsZipCodes, List<ZipCodeBoundary> zipCodeBoundaries = null )
         {
             // Update census data with ZipCode details
-            foreach ( var analyticsZipCode in analyticsZipCodes )
+            if ( zipCodeBoundaries?.Any() == true )
             {
-                var zipCodeBoundary = zipCodeBoundaries.Find( z => z.ZipCode == analyticsZipCode.ZipCode );
-
-                if ( zipCodeBoundary != null )
+                foreach ( var analyticsZipCode in analyticsZipCodes )
                 {
-                    analyticsZipCode.State = zipCodeBoundary.State ?? string.Empty;
-                    analyticsZipCode.SquareMiles = zipCodeBoundary.SquareMiles;
-                    analyticsZipCode.City = zipCodeBoundary.City ?? string.Empty;
-                    analyticsZipCode.GeoFence = zipCodeBoundary.GeoFence;
+                    var zipCodeBoundary = zipCodeBoundaries.Find( z => z.ZipCode == analyticsZipCode.ZipCode );
+
+                    if ( zipCodeBoundary != null )
+                    {
+                        analyticsZipCode.State = zipCodeBoundary.State ?? string.Empty;
+                        analyticsZipCode.SquareMiles = zipCodeBoundary.SquareMiles;
+                        analyticsZipCode.City = zipCodeBoundary.City ?? string.Empty;
+                        analyticsZipCode.GeoFence = zipCodeBoundary.GeoFence;
+                    }
+                }
+
+                // NOTE: We can't use rockContext.BulkInsert because that enforces that the <T> is Rock.Data.IEntity, and using the EFBatchOperation
+                // results in a NullPointer when saving DbGeography because the GetValue method on the EFDataReader tries to access the Latitude and
+                // Longitude data on the DbGeography, which doesn't exist for polygon based DbGeography.
+
+                // Batch size
+                int batchSize = 1000;
+                RockContext rockContext = new RockContext();
+
+                // Calculate the number of batches
+                int batches = ( int ) Math.Ceiling( ( double ) analyticsZipCodes.Count / batchSize );
+                for ( int i = 0; i < batches; i++ )
+                {
+                    rockContext = new RockContext();
+                    rockContext.Configuration.AutoDetectChangesEnabled = false;
+                    rockContext.Configuration.ValidateOnSaveEnabled = false;
+
+                    // Get the current batch
+                    var currentBatch = analyticsZipCodes.Skip( i * batchSize ).Take( batchSize ).ToList();
+
+                    rockContext.AnalyticsSourceZipCodes.AddRange( currentBatch );
+                    rockContext.SaveChanges();
+                }
+
+                rockContext.Dispose();
+            }
+            else
+            {
+                using ( var rockContext = new RockContext() )
+                {
+                    // Since we are not saving the DbGeography details we'll just use EFBatchOperation to BulkInsert.
+                    EFBatchOperation.For( rockContext, rockContext.AnalyticsSourceZipCodes ).InsertAll( analyticsZipCodes );
                 }
             }
-
-            // NOTE: We can't use rockContext.BulkInsert because that enforces that the <T> is Rock.Data.IEntity, and using the EFBatchOperation
-            // results in a NullPointer when saving DbGeography because the GetValue method on the EFDataReader tries to access the Latitude and
-            // Longitude data on the DbGeography, which doesn't exist for polygon based DbGeography.
-
-            // Batch size
-            int batchSize = 1000;
-            RockContext rockContext = new RockContext();
-
-            // Calculate the number of batches
-            int batches = ( int ) Math.Ceiling( ( double ) analyticsZipCodes.Count / batchSize );
-            for ( int i = 0; i < batches; i++ )
-            {
-                rockContext = new RockContext();
-                rockContext.Configuration.AutoDetectChangesEnabled = false;
-                rockContext.Configuration.ValidateOnSaveEnabled = false;
-
-                // Get the current batch
-                var currentBatch = analyticsZipCodes.Skip( i * batchSize ).Take( batchSize ).ToList();
-
-                rockContext.AnalyticsSourceZipCodes.AddRange( currentBatch );
-                rockContext.SaveChanges();
-            }
-
-            rockContext.Dispose();
         }
 
         /// <summary>
@@ -158,6 +170,12 @@ namespace Rock.Model
                 return data.OrderBy( z => z.ZipCode ).ToList();
             }
         }
+
+        /**
+          * 01/08/2024 - KA
+          * 
+          * The download method is not called anywhere at the moment due to the large file that would otherwise be downloaded (over 900MB)
+          */
 
         /// <summary>
         /// Downloads the Boundary data as a memory stream.
