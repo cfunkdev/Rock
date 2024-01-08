@@ -1034,7 +1034,7 @@
     <Compile Include="Jobs\PostUpdateJobs\PostV16UpdateWorkflowIds.cs" />
     <Compile Include="Jobs\PostUpdateDataMigrationsReplaceWebFormsBlocksWithObsidianBlocks.cs" />
     <Compile Include="Jobs\PostUpdateJobs\PostV152CreateAttributeValue_ValueAsPersonId_Index.cs" />
-	<Compile Include="Jobs\PostV154DataMigrationsUpdateAgeBracketValues.cs" />
+    <Compile Include="Jobs\PostV154DataMigrationsUpdateAgeBracketValues.cs" />
     <Compile Include="Jobs\PostUpdateJobs\PostV17RemoveLegacyPreferencesPostMigration.cs" />
     <Compile Include="Jobs\ProcessReminders.cs" />
     <Compile Include="Jobs\PostUpdateJobs\PostV133DataMigrationsAddInteractionSessionLocationIndexToInteractionSession.cs" />
@@ -1164,6 +1164,8 @@
     <Compile Include="Net\IRockResponseContext.cs" />
     <Compile Include="Net\NullRockResponseContext.cs" />
     <Compile Include="Net\RockResponseContext.WebForms.cs" />
+    <Compile Include="Observability\CategoryLogProcessor.cs" />
+    <Compile Include="Observability\LogExporterWrapper.cs" />
     <Compile Include="Observability\ObservabilityHelper.cs" />
     <Compile Include="Observability\RockActivitySource.cs" />
     <Compile Include="Observability\RockMetricSource.cs" />

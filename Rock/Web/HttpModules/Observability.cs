@@ -88,7 +88,7 @@ namespace Rock.Web.HttpModules
             HttpApplication application = ( HttpApplication ) sender;
             HttpContext context = application.Context;
 
-            BeginIISRequest( context );
+            BeginLogRequest( context );
 
             // Register a control adapter for handling Rock block events if we have not already registered one
             if ( !context.Request.Browser.Adapters.Contains( typeof( RockBlock ).FullName ) )
@@ -175,18 +175,19 @@ namespace Rock.Web.HttpModules
             HttpApplication application = ( HttpApplication ) sender;
             HttpContext context = application.Context;
 
+            // Intentionally end the log request before the activity so that it
+            // gets attached to the activity.
+            EndLogRequest( context );
+
             if ( context.Items[ContextKey] is Activity activity )
             {
                 activity.AddTag( "http.status_code", context.Response.StatusCode );
-                //http.response.body.size
 
                 activity.Dispose();
             }
-
-            EndIISRequest( context );
         }
 
-        #region IIS Request Logging
+        #region Request Logging
 
         /// <summary>
         /// The key used to store the RequestDetail on the HttpContext.
@@ -199,16 +200,16 @@ namespace Rock.Web.HttpModules
         private const string RequestLogFormat = "{DateTime} {ServerIp} {Method} {Path} {Query} {ServerPort} {Username} {ClientIp} {UserAgent} {Referer} {Status} {Substatus} {Duration}";
 
         /// <summary>
-        /// The logger that will be used for IIS logs.
+        /// The logger that will be used for logs.
         /// </summary>
-        private readonly ILogger _requestLogger = RockLogger.LoggerFactory.CreateLogger( "IIS.Logs" );
+        private readonly ILogger _requestLogger = RockLogger.LoggerFactory.CreateLogger( "WebServer.Logs" );
 
         /// <summary>
-        /// Begins tracking the IIS request. This provides logging details
+        /// Begins tracking the request. This provides logging details
         /// similar to what IIS would log in its own log files.
         /// </summary>
         /// <param name="context">The context.</param>
-        private void BeginIISRequest( HttpContext context )
+        private void BeginLogRequest( HttpContext context )
         {
             if ( !_requestLogger.IsEnabled( LogLevel.Information ) )
             {
@@ -244,7 +245,7 @@ namespace Rock.Web.HttpModules
         /// Ends the logging for the current request.
         /// </summary>
         /// <param name="context">The context.</param>
-        private void EndIISRequest( HttpContext context )
+        private void EndLogRequest( HttpContext context )
         {
             if ( !( context.Items[RequestDetailContextKey] is RequestDetail request ) )
             {

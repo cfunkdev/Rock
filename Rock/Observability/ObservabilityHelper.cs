@@ -15,7 +15,6 @@
 // </copyright>
 //
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 using Microsoft.Extensions.Configuration;
@@ -288,76 +287,15 @@ namespace Rock.Observability
 
                 cfg.IncludeFormattedMessage = true;
                 cfg.SetResourceBuilder( resourceBuilder );
+
+                // This processor is temporary until OpenTelemetry decides what
+                // to do with the category name. It is currently excluded in
+                // from the exporter.
+                cfg.AddProcessor( new CategoryLogProcessor() );
+
                 cfg.AddProcessor( new BatchLogRecordExportProcessor( _exporterWrapper ) );
             } );
         }
-
-        internal class LogExporterWrapper : BaseExporter<LogRecord>
-        {
-            private bool _initialized = false;
-
-            private readonly object _initializeLock = new object();
-
-            private BaseExporter<LogRecord> _exporter;
-
-            public BaseExporter<LogRecord> Exporter
-            {
-                get => _exporter;
-                set
-                {
-                    _exporter = value;
-                    _initialized = _exporter == null;
-
-                    InitializeExporter();
-                }
-            }
-
-            public override ExportResult Export( in Batch<LogRecord> batch )
-            {
-                if ( !_initialized )
-                {
-                    InitializeExporter();
-                }
-
-                // Use a local variable to ensure another thread doesn't change it.
-                var exporter = Exporter;
-
-                if ( exporter != null )
-                {
-                    return exporter.Export( batch );
-                }
-
-                return ExportResult.Success;
-            }
-
-            private void InitializeExporter()
-            {
-                lock ( _initializeLock )
-                {
-                    if ( _initialized || ParentProvider == null )
-                    {
-                        return;
-                    }
-
-                    // Use a local variable to ensure another thread doesn't change it.
-                    var exporter = Exporter;
-
-                    if ( exporter == null )
-                    {
-                        _initialized = true;
-                        return;
-                    }
-
-                    // There is a unit test to ensure this method still exists.
-                    var parentProviderProperty = exporter.GetType().GetProperty( nameof( exporter.ParentProvider ) );
-
-                    parentProviderProperty?.SetValue( exporter, ParentProvider );
-
-                    _initialized = true;
-                }
-            }
-        }
-
         /// <summary>
         /// Helper method to create a new observability activity that has a common set of attributes applied to it.
         /// </summary>
