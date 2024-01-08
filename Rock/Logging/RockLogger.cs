@@ -112,10 +112,20 @@ namespace Rock.Logging
         [RockInternal( "1.17", true )]
         public static List<string> GetStandardCategories()
         {
-            return Reflection.FindTypes( typeof( object ) )
+            var typeCategories = Reflection.FindTypes( typeof( object ) )
                 .Select( p => p.Value )
                 .Where( t => t.GetCustomAttribute<RockLoggingCategoryAttribute>() != null )
-                .Select( t => t.FullName )
+                .Select( t => t.FullName );
+
+            var assemblyCategories = Reflection.GetRockAndPluginAssemblies()
+                .SelectMany( a => a.GetCustomAttributes<RockLoggingCategoryAttribute>() )
+                .Where( a => a.CategoryName.IsNotNullOrWhiteSpace() )
+                .Select( a => a.CategoryName );
+
+            return typeCategories
+                .Union( assemblyCategories )
+                .Distinct()
+                .OrderBy( cat => cat )
                 .ToList();
         }
 

@@ -14,6 +14,8 @@
 // limitations under the License.
 // </copyright>
 //
+using System.Runtime.CompilerServices;
+
 using OpenTelemetry;
 using OpenTelemetry.Logs;
 
@@ -98,12 +100,23 @@ namespace Rock.Observability
                 }
 
                 // There is a unit test to ensure this method still exists.
-                var parentProviderProperty = exporter.GetType().GetProperty( nameof( exporter.ParentProvider ) );
+                var parentProviderProperty = GetParentProviderProperty( exporter );
 
                 parentProviderProperty?.SetValue( exporter, ParentProvider );
 
                 _initialized = true;
             }
+        }
+
+        /// <summary>
+        /// Gets the parent provider property information from reflection.
+        /// </summary>
+        /// <param name="exporter">The exporter.</param>
+        /// <returns>The property or <c>null</c> if it could not be found.</returns>
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+        internal static System.Reflection.PropertyInfo GetParentProviderProperty( BaseExporter<LogRecord> exporter )
+        {
+            return exporter.GetType().GetProperty( nameof( exporter.ParentProvider ) );
         }
     }
 }

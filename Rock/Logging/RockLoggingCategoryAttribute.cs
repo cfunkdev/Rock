@@ -17,12 +17,41 @@
 namespace Rock.Logging
 {
     /// <summary>
+    /// <para>
     /// Identifies a class as supporting logging. This is used to allow the
     /// administrator to easily search for and enable logging categories.
     /// Logging can still happen even without this attribute.
+    /// </para>
+    /// <para>
+    /// The constructor that takes a category name parameter should only
+    /// be used for assembly level attributes.
+    /// </para>
     /// </summary>
-    [System.AttributeUsage( System.AttributeTargets.Class )]
+    [System.AttributeUsage( System.AttributeTargets.Class | System.AttributeTargets.Assembly, AllowMultiple = true )]
     public class RockLoggingCategoryAttribute : System.Attribute
     {
+        /// <summary>
+        /// Gets the name of the category.
+        /// </summary>
+        /// <value>The name of the category.</value>
+        public string CategoryName { get; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RockLoggingCategoryAttribute"/> class.
+        /// </summary>
+        public RockLoggingCategoryAttribute()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RockLoggingCategoryAttribute"/> class.
+        /// This can be used to register a non standard category name such as <c>Rock.Jobs</c>,
+        /// which would allow the entire namespace to be configured.
+        /// </summary>
+        /// <param name="categoryName">Name of the category.</param>
+        public RockLoggingCategoryAttribute( string categoryName )
+        {
+            CategoryName = categoryName;
+        }
     }
 }
