@@ -188,6 +188,9 @@ registerFieldType(FieldTypeGuids.DocumentType, new DocumentTypeFieldType());
 import { EmailFieldType } from "./emailField.partial";
 registerFieldType(FieldTypeGuids.Email, new EmailFieldType());
 
+import { EncryptedTextFieldType } from "./encryptedTextField.partial";
+registerFieldType(FieldTypeGuids.EncryptedText, new EncryptedTextFieldType());
+
 import { EntityFieldType } from "./entityField.partial";
 registerFieldType(FieldTypeGuids.Entity, new EntityFieldType());
 
@@ -397,6 +400,9 @@ registerFieldType(FieldTypeGuids.TimeZone, new TimeZoneFieldType());
 
 import { UrlLinkFieldType } from "./urlLinkField.partial";
 registerFieldType(FieldTypeGuids.UrlLink, new UrlLinkFieldType());
+
+import { ValueFilterFieldType } from "./valueFilterField.partial";
+registerFieldType(FieldTypeGuids.ValueFilter, new ValueFilterFieldType());
 
 import { ValueListFieldType } from "./valueListField.partial";
 registerFieldType(FieldTypeGuids.ValueList, new ValueListFieldType());
