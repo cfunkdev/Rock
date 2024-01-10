@@ -2944,7 +2944,7 @@ BEGIN
 		ELSE A.[Age] 
 		END,
 	P.[AgeBracket] = CASE
-        WHEN A.[AgeBracket] IS NULL THEN -1
+        WHEN A.[AgeBracket] IS NULL THEN 0
         ELSE A.[AgeBracket]
         END        
 	FROM Person P
@@ -3110,7 +3110,7 @@ END
         /// </summary>
         /// <returns></returns>
         private int UpdateMissingPrimaryFamily()
-        {
+       {
             using ( var rockContext = new RockContext() )
             {
                 var personService = new PersonService( rockContext );
@@ -3125,17 +3125,20 @@ END
 
                     if ( groupMember == null )
                     {
-                        var group = new Group();
-                        group.Name = person.LastName;
-                        group.GroupTypeId = familyGroupType.Id;
+                        var group = new Group
+                        {
+                            Name = person.LastName,
+                            GroupTypeId = familyGroupType.Id
+                        };
                         groupService.Add( group );
-                        rockContext.SaveChanges();
 
-                        groupMember = new GroupMember();
-                        groupMember.PersonId = person.Id;
-                        groupMember.GroupRoleId = familyGroupType.DefaultGroupRoleId.Value;
-                        groupMember.GroupId = group.Id;
+                        groupMember = new GroupMember
+                        {
+                            PersonId = person.Id,
+                            GroupRoleId = familyGroupType.DefaultGroupRoleId.Value
+                        };
                         group.Members.Add( groupMember );
+
                         rockContext.SaveChanges();
                     }
 

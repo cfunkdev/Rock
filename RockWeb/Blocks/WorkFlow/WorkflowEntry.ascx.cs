@@ -418,7 +418,7 @@ namespace RockWeb.Blocks.WorkFlow
                     GetWorkflowFormPersonEntryValues( personEntryRockContext );
                 }
             }
-            
+
             SetWorkflowFormAttributeValues();
             CompleteFormAction( eventArgument );
         }
@@ -711,7 +711,7 @@ namespace RockWeb.Blocks.WorkFlow
 
                         // Check each active action in the activity for valid criteria and get the first one. This is to prevent a conditional action that didn't meet criteria from preventing a form from showing.
                         WorkflowAction action = actions.Where( a => a.IsCriteriaValid ).FirstOrDefault();
-                        
+
                         if ( action == null )
                         {
                             continue;
@@ -800,7 +800,7 @@ namespace RockWeb.Blocks.WorkFlow
         private IEntity GetWorkflowEntity()
         {
             IEntity iEntity = null;
-            if( _workflow.Id == 0 )
+            if ( _workflow.Id == 0 )
             {
                 // This is a new workflow, so get the EntityType and Id from the PersonId or GroupId page parameters if they exist.
                 // If this is an existing workflow the EntityType and Id are already inserted into the Workflow instance.
@@ -1575,7 +1575,7 @@ namespace RockWeb.Blocks.WorkFlow
                 {
                     if ( CurrentPerson.PrimaryFamily == null )
                     {
-                        CurrentPerson.PrimaryFamily = GetFamily( CurrentPerson );
+                        CurrentPerson.PrimaryFamily = GetFamily( CurrentPerson, personEntryRockContext );
                     }
 
                     SavePersonEntryToAttributeValues( existingPersonId.Value, existingPersonSpouseId, CurrentPerson.PrimaryFamily );
@@ -1621,7 +1621,7 @@ namespace RockWeb.Blocks.WorkFlow
             int? personEntryPersonSpouseId = null;
 
             var personService = new PersonService( personEntryRockContext );
-            var primaryFamily = personService.GetSelect( personEntryPersonId, s => s.PrimaryFamily ) ?? GetFamily( personEntryPerson );
+            var primaryFamily = personService.GetSelect( personEntryPersonId, s => s.PrimaryFamily ) ?? GetFamily( personEntryPerson, personEntryRockContext );
 
             if ( pePerson2.Visible )
             {
@@ -1651,7 +1651,7 @@ namespace RockWeb.Blocks.WorkFlow
                      *  After further discussion we would be defaulting the marital status, if not provided, to married
 
                      */
-                    if( dvpMaritalStatus.SelectedDefinedValueId.HasValue )
+                    if ( dvpMaritalStatus.SelectedDefinedValueId.HasValue )
                     {
                         personEntryPersonSpouse.MaritalStatusValueId = dvpMaritalStatus.SelectedDefinedValueId;
                         personEntryPerson.MaritalStatusValueId = dvpMaritalStatus.SelectedDefinedValueId;
@@ -1663,8 +1663,8 @@ namespace RockWeb.Blocks.WorkFlow
                         personEntryPerson.MaritalStatusValueId = maritalStatusMarriedValueId;
                     }
 
-                        PersonService.AddPersonToFamily( personEntryPersonSpouse, true, primaryFamily.Id, pePerson2.PersonGroupRoleId, personEntryRockContext );
-                    }
+                    PersonService.AddPersonToFamily( personEntryPersonSpouse, true, primaryFamily.Id, pePerson2.PersonGroupRoleId, personEntryRockContext );
+                }
 
                 personEntryRockContext.SaveChanges();
 
@@ -1720,28 +1720,36 @@ namespace RockWeb.Blocks.WorkFlow
             personEntryRockContext.SaveChanges();
         }
 
-        private Group GetFamily( Person person )
+        /// <summary>
+        /// Assigns the person to a family group, If there is no existing family a new one is created.
+        /// </summary>
+        /// <param name="person">The person.</param>
+        /// <param name="personEntryRockContext">The person entry rock context.</param>
+        /// <returns></returns>
+        private Group GetFamily( Person person, RockContext personEntryRockContext )
         {
-            using ( var rockContext = new RockContext() )
+            Group family = null;
+            var familyGroupType = GroupTypeCache.GetFamilyGroupType();
+            var groupService = new GroupService( personEntryRockContext );
+            var groupMemberService = new GroupMemberService( personEntryRockContext );
+
+            if ( person.PrimaryFamilyId.HasValue )
             {
-                Group family = null;
-                var familyGroupType = GroupTypeCache.GetFamilyGroupType();
-                var groupService = new GroupService( rockContext );
-                var groupMemberService = new GroupMemberService( rockContext );
-                if ( person.PrimaryFamilyId.HasValue )
-                {
-                    family = groupService.Get( person.PrimaryFamilyId.Value );
-                }
+                family = groupService.Get( person.PrimaryFamilyId.Value );
+            }
 
-                if ( family == null )
-                {
-                    family = groupMemberService.Queryable()
-                        .Where( gm => gm.PersonId == person.Id && gm.GroupTypeId == familyGroupType.Id )
-                        .Select( gm => gm.Group )
-                        .FirstOrDefault();
-                }
+            if ( family == null )
+            {
+                family = groupMemberService.Queryable()
+                    .Where( gm => gm.PersonId == person.Id && gm.GroupTypeId == familyGroupType.Id )
+                    .Select( gm => gm.Group )
+                    .FirstOrDefault();
+            }
 
-                if ( family == null )
+            if ( family == null )
+            {
+                // Create new context so we don't inadvertently save any changes being tracked by the personEntryRockContext
+                using ( var newFamilyRockContext = new RockContext() )
                 {
                     family = new Rock.Model.Group
                     {
@@ -1750,25 +1758,26 @@ namespace RockWeb.Blocks.WorkFlow
                         CampusId = person.PrimaryCampusId
                     };
 
-                    groupService.Add( family );
-                    rockContext.SaveChanges();
+                    newFamilyRockContext.Groups.Add( family );
 
                     var adultRoleId = familyGroupType.Roles.Find( r => r.Guid == Rock.SystemGuid.GroupRole.GROUPROLE_FAMILY_MEMBER_ADULT.AsGuid() ).Id;
                     var familyMember = new GroupMember
                     {
-                        GroupId = family.Id,
                         PersonId = person.Id,
                         GroupRoleId = familyGroupType.DefaultGroupRoleId ?? adultRoleId,
                         GroupMemberStatus = GroupMemberStatus.Active
                     };
 
-                    groupMemberService.Add( familyMember );
+                    family.Members.Add( familyMember );
 
-                    rockContext.SaveChanges();
+                    newFamilyRockContext.SaveChanges();
                 }
 
-                return family;
+                // Reload family with the personEntryRockContext so any changes to the family is tracked by it.
+                family = groupService.Get( family.Id );
             }
+
+            return family;
         }
 
         /// <summary>
