@@ -325,37 +325,37 @@ namespace Rock.Personalization.SegmentFilters
 
             if ( PageUrlComparisonValue.IsNotNullOrWhiteSpace() )
             {
-                ApplyComparisonFilter( ref pageViewsInteractionsQuery, PageUrlComparisonType, PageUrlComparisonValue, i => i.InteractionData );
+                ApplyComparisonFilter( ref pageViewsInteractionsQuery, PageUrlComparisonType, PageUrlComparisonValue, nameof( Interaction.InteractionData ) );
             }
 
             if ( PageReferrerComparisonValue.IsNotNullOrWhiteSpace() )
             {
-                ApplyComparisonFilter( ref pageViewsInteractionsQuery, PageReferrerComparisonType, PageReferrerComparisonValue, i => i.ChannelCustomIndexed1 );
+                ApplyComparisonFilter( ref pageViewsInteractionsQuery, PageReferrerComparisonType, PageReferrerComparisonValue, nameof( Interaction.ChannelCustomIndexed1 ) );
             }
 
             if ( SourceComparisonValue.IsNotNullOrWhiteSpace() )
             {
-                ApplyComparisonFilter( ref pageViewsInteractionsQuery, SourceComparisonType, SourceComparisonValue, i => i.Source );
+                ApplyComparisonFilter( ref pageViewsInteractionsQuery, SourceComparisonType, SourceComparisonValue, nameof( Interaction.Source ) );
             }
 
             if ( MediumComparisonValue.IsNotNullOrWhiteSpace() )
             {
-                ApplyComparisonFilter( ref pageViewsInteractionsQuery, MediumComparisonType, MediumComparisonValue, i => i.Medium );
+                ApplyComparisonFilter( ref pageViewsInteractionsQuery, MediumComparisonType, MediumComparisonValue, nameof( Interaction.Medium ) );
             }
 
             if ( CampaignComparisonValue.IsNotNullOrWhiteSpace() )
             {
-                ApplyComparisonFilter( ref pageViewsInteractionsQuery, CampaignComparisonType, CampaignComparisonValue, i => i.Campaign );
+                ApplyComparisonFilter( ref pageViewsInteractionsQuery, CampaignComparisonType, CampaignComparisonValue, nameof( Interaction.Campaign ) );
             }
 
             if ( ContentComparisonValue.IsNotNullOrWhiteSpace() )
             {
-                ApplyComparisonFilter( ref pageViewsInteractionsQuery, ContentComparisonType, ContentComparisonValue, i => i.Content );
+                ApplyComparisonFilter( ref pageViewsInteractionsQuery, ContentComparisonType, ContentComparisonValue, nameof( Interaction.Content ) );
             }
 
             if ( TermComparisonValue.IsNotNullOrWhiteSpace() )
             {
-                ApplyComparisonFilter( ref pageViewsInteractionsQuery, TermComparisonType, TermComparisonValue, i => i.Term );
+                ApplyComparisonFilter( ref pageViewsInteractionsQuery, TermComparisonType, TermComparisonValue, nameof( Interaction.Term ) );
             }
 
             var personAliasQuery = personAliasService.Queryable();
@@ -401,6 +401,16 @@ namespace Rock.Personalization.SegmentFilters
                     interactionQuery = interactionQuery.Where( i => interactionPropertyGetter( i ).ToString().EndsWith( comparisonValue ) );
                     break;
             }
+        }
+
+        private void ApplyComparisonFilter( ref IQueryable<Interaction> interactionQuery, ComparisonType comparisonType, string comparisonValue, string propertyName )
+        {
+            var parameter = Expression.Parameter( typeof( Interaction ), "Interaction" );
+            var constant = Expression.Constant( comparisonValue );
+            var property = Expression.Property( parameter, propertyName );
+            var where = ComparisonHelper.ComparisonExpression( comparisonType, property, constant );
+
+            interactionQuery = interactionQuery.Where( parameter, where );
         }
     }
 }
