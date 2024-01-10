@@ -206,6 +206,15 @@ namespace Rock.Blocks.Core
                 entityService.Delete( entity );
                 rockContext.SaveChanges();
 
+                System.Guid guid = entity.Guid;
+                bool clearDeviceCache = entity.BinaryFileType.Guid.Equals( Rock.SystemGuid.BinaryFiletype.CHECKIN_LABEL.AsGuid() );
+
+                if ( clearDeviceCache )
+                {
+                    Rock.CheckIn.KioskDevice.Clear();
+                    Rock.CheckIn.KioskLabel.Remove( guid );
+                }
+
                 return ActionOk();
             }
         }
