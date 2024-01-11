@@ -24,10 +24,12 @@ using System.Text.RegularExpressions;
 using System.Web;
 using System.Xml.Linq;
 
+using Rock.AdditionalSettings;
 using Rock.Data;
 using Rock.Model;
 using Rock.Security;
 using Rock.Utility;
+using Rock.Utility.ExtensionMethods;
 
 namespace Rock.Web.Cache
 {
@@ -37,7 +39,7 @@ namespace Rock.Web.Cache
     /// </summary>
     [Serializable]
     [DataContract]
-    public class PageCache : ModelCache<PageCache, Page>
+    public class PageCache : ModelCache<PageCache, Page>, IReadAdditionalSettings
     {
         #region Properties
 
@@ -327,8 +329,15 @@ namespace Rock.Web.Cache
         /// <value>
         /// The additional settings.
         /// </value>
+        [Obsolete( "Use AdditionalSettingsJson instead." )]
+        [RockObsolete( "1.16" )]
         [DataMember]
         public string AdditionalSettings { get; private set; }
+
+
+        /// <inheritdoc/>
+        [DataMember]
+        public string AdditionalSettingsJson { get; private set; }
 
         /// <summary>
         /// Gets or sets the median page load time in seconds. Typically calculated from a set of
@@ -696,6 +705,27 @@ namespace Rock.Web.Cache
             }
         }
 
+        /// <summary>
+        /// Gets the intent defined value identifiers.
+        /// </summary>
+        public List<int> IntentValueIds
+        {
+            get
+            {
+                if ( _intentValueIds == null )
+                {
+                    var additionalSettings = this as IReadAdditionalSettings;
+                    var siteSettings = additionalSettings.GetAdditionalSettings<PageAdditionalSettings.SiteSettings>( PageAdditionalSettings.CategoryKey.SiteSettings );
+
+                    _intentValueIds = siteSettings?.PageIntentValueIds ?? new List<int>();
+                }
+
+                return _intentValueIds;
+            }
+        }
+
+        private List<int> _intentValueIds;
+
         #endregion
 
         #region Additional Properties 
@@ -774,6 +804,7 @@ namespace Rock.Web.Cache
             BodyCssClass = page.BodyCssClass;
             IconBinaryFileId = page.IconBinaryFileId;
             AdditionalSettings = page.AdditionalSettings;
+            AdditionalSettingsJson = page.AdditionalSettingsJson;
             MedianPageLoadTimeDurationSeconds = page.MedianPageLoadTimeDurationSeconds;
             RateLimitPeriod = page.RateLimitPeriod;
             RateLimitRequestPerPeriod = page.RateLimitRequestPerPeriod;

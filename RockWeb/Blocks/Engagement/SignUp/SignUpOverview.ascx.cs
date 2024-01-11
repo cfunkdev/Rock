@@ -24,12 +24,14 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using Newtonsoft.Json;
 using Rock;
+using Rock.AdditionalSettings;
 using Rock.Attribute;
 using Rock.Constants;
 using Rock.Data;
 using Rock.Model;
 using Rock.Security;
 using Rock.Utility;
+using Rock.Utility.ExtensionMethods;
 using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
@@ -204,6 +206,33 @@ namespace RockWeb.Blocks.Engagement.SignUp
             {
                 SetGridFilters();
                 BindOpportunitiesGrid();
+
+                var intentValueIds = this.PageCache.IntentValueIds;
+
+                using ( var rockContext = new RockContext() )
+                {
+                    var page = new PageService( rockContext ).Get( this.PageCache.Id );
+
+                    var additionalSettings = page as IHasAdditionalSettings;
+                    var siteSettingsKey = PageAdditionalSettings.CategoryKey.SiteSettings;
+                    var siteSettings = additionalSettings.GetAdditionalSettings<PageAdditionalSettings.SiteSettings>( siteSettingsKey );
+
+                    if ( siteSettings == null )
+                    {
+                        siteSettings = new PageAdditionalSettings.SiteSettings
+                        {
+                            PageIntentValueIds = new List<int> { 1, 2, 3 }
+                        };
+                    }
+                    else
+                    {
+                        siteSettings.PageIntentValueIds.AddRange( new List<int> { 4, 5, 6 } );
+                    }
+
+                    additionalSettings.SetAdditionalSettings( siteSettingsKey, siteSettings );
+
+                    rockContext.SaveChanges();
+                }
             }
         }
 

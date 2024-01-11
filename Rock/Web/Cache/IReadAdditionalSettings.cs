@@ -15,20 +15,19 @@
 // </copyright>
 //
 using Rock.Attribute;
-using Rock.Web.Cache;
 
-namespace Rock.Data
+namespace Rock.Web.Cache
 {
     /// <summary>
-    /// Represents a model that supports reading and writing categorized, additional settings.
+    /// Represents a cache that supports reading categorized, additional settings.
     /// </summary>
-    public interface IHasAdditionalSettings : IReadAdditionalSettings
+    public interface IReadAdditionalSettings
     {
         /// <summary>
-        /// Gets or sets the additional settings JSON string.
+        /// Gets the additional settings JSON string.
         /// <para>
-        /// DO NOT read from or write to this property directly. Instead, use the <see cref="IHasAdditionalSettings"/>
-        /// extension methods to ensure data is properly serialized and deserialized to and from this property.
+        /// DO NOT read from this property directly. Instead, use the <see cref="IReadAdditionalSettings"/>
+        /// extension methods to ensure data is properly deserialized from this property.
         /// </para>
         /// </summary>
         /// <value>
@@ -43,6 +42,6 @@ namespace Rock.Data
         ///     </para>
         /// </remarks>
         [RockInternal( "1.16.2" )]
-        new string AdditionalSettingsJson { get; set; }
+        string AdditionalSettingsJson { get; }
     }
 }

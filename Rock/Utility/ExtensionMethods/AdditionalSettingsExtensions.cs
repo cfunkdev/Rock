@@ -19,6 +19,7 @@ using Newtonsoft.Json.Linq;
 
 using Rock.Attribute;
 using Rock.Data;
+using Rock.Web.Cache;
 
 namespace Rock.Utility.ExtensionMethods
 {
@@ -54,13 +55,13 @@ namespace Rock.Utility.ExtensionMethods
 
         /// <summary>
         /// Gets the deserialized settings object matching the provided <paramref name="categoryKey"/> from
-        /// <see cref="IHasAdditionalSettings.AdditionalSettingsJson"/>. If it can't be found or deserialized,
+        /// <see cref="IReadAdditionalSettings.AdditionalSettingsJson"/>. If it can't be found or deserialized,
         /// returns <see langword="null"/>.
         /// </summary>
         /// <typeparam name="T">
         /// The <see cref="System.Type"/> of category settings object into which the underlying JSON string should be deserialized.
         /// </typeparam>
-        /// <param name="settings">The <see cref="IHasAdditionalSettings"/> instance containing the desired, categorized settings.</param>
+        /// <param name="settings">The <see cref="IReadAdditionalSettings"/> instance containing the desired, categorized settings.</param>
         /// <param name="categoryKey">The category key of the settings object to be returned.</param>
         /// <returns>The deserialized settings object or <see langword="null"/> if not found or deserialization fails.</returns>
         /// <remarks>
@@ -72,7 +73,7 @@ namespace Rock.Utility.ExtensionMethods
         ///     </para>
         /// </remarks>
         [RockInternal( "1.16.2" )]
-        public static T GetAdditionalSettings<T>( this IHasAdditionalSettings settings, string categoryKey ) where T : class, new()
+        public static T GetAdditionalSettings<T>( this IReadAdditionalSettings settings, string categoryKey ) where T : class, new()
         {
             if ( categoryKey.IsNullOrWhiteSpace() )
             {
@@ -143,6 +144,15 @@ namespace Rock.Utility.ExtensionMethods
         /// </summary>
         /// <param name="settings">The <see cref="IHasAdditionalSettings"/> instance containing the category settings to be removed.</param>
         /// <param name="categoryKey">The category key of the settings object to be removed.</param>
+        /// <remarks>
+        ///     <para>
+        ///         <strong>This is an internal API</strong> that supports the Rock
+        ///         infrastructure and not subject to the same compatibility standards
+        ///         as public APIs. It may be changed or removed without notice in any
+        ///         release and should therefore not be directly used in any plug-ins.
+        ///     </para>
+        /// </remarks>
+        [RockInternal( "1.16.2" )]
         public static void RemoveAdditionalSettings( this IHasAdditionalSettings settings, string categoryKey )
         {
             if ( categoryKey.IsNullOrWhiteSpace() )
@@ -166,11 +176,20 @@ namespace Rock.Utility.ExtensionMethods
         #region Private Methods
 
         /// <summary>
-        /// Gets the deserialized root object from <see cref="IHasAdditionalSettings.AdditionalSettingsJson"/>.
+        /// Gets the deserialized root object from <see cref="IReadAdditionalSettings.AdditionalSettingsJson"/>.
         /// </summary>
-        /// <param name="settings">The <see cref="IHasAdditionalSettings"/> object containing the serialized additional settings.</param>
-        /// <returns>The deserialized root object from <see cref="IHasAdditionalSettings.AdditionalSettingsJson"/>.</returns>
-        private static JObject GetAdditionalSettingsRoot( this IHasAdditionalSettings settings )
+        /// <param name="settings">The <see cref="IReadAdditionalSettings"/> object containing the serialized additional settings.</param>
+        /// <returns>The deserialized root object from <see cref="IReadAdditionalSettings.AdditionalSettingsJson"/>.</returns>
+        /// <remarks>
+        ///     <para>
+        ///         <strong>This is an internal API</strong> that supports the Rock
+        ///         infrastructure and not subject to the same compatibility standards
+        ///         as public APIs. It may be changed or removed without notice in any
+        ///         release and should therefore not be directly used in any plug-ins.
+        ///     </para>
+        /// </remarks>
+        [RockInternal( "1.16.2" )]
+        private static JObject GetAdditionalSettingsRoot( this IReadAdditionalSettings settings )
         {
             if ( settings?.AdditionalSettingsJson.IsNotNullOrWhiteSpace() != true )
             {
