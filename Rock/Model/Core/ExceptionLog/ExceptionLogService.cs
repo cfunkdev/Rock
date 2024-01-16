@@ -15,13 +15,17 @@
 // </copyright>
 //
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Rock.Data;
+using Rock.Logging;
 
 namespace Rock.Model
 {
@@ -261,6 +265,9 @@ namespace Rock.Model
             {
                 try
                 {
+                    // Write to the log file, after ensuring that this thread has exclusive access.
+                    _logWriterWaitHandle.WaitOne( 1000 );
+
                     string directory = AppDomain.CurrentDomain.BaseDirectory;
                     directory = Path.Combine( directory, "App_Data", "Logs" );
 
@@ -276,13 +283,19 @@ namespace Rock.Model
                         File.AppendAllText( filePath, string.Format( "{0},{1},\"{2}\",\"{3}\"\r\n", when, ex.GetType(), ex.Message, ex.StackTrace ) );
                         ex = ex.InnerException;
                     }
+
+                    _logWriterWaitHandle.Set();
                 }
-                catch
+                catch ( Exception exLog )
                 {
                     // failed to write to database and also failed to write to log file, so there is nowhere to log this error
+                    DebugHelper.Log( "** Error Logging Failed.\n" + exLog.ToString() );
                 }
             }
         }
+
+        // A mutex to synchronise write operations for the log file.
+        private static EventWaitHandle _logWriterWaitHandle = new EventWaitHandle( true, EventResetMode.AutoReset, "ROCK_EXCEPTION_LOG_WRITE" );
 
         #endregion Operations
 
