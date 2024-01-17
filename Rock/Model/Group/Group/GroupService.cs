@@ -23,6 +23,7 @@ using System.Linq;
 using System.Text;
 
 using Rock.Data;
+using Rock.Observability;
 using Rock.Web.Cache;
 
 using Z.EntityFramework.Plus;
@@ -463,7 +464,7 @@ namespace Rock.Model
 
             return cteBuilder.ToString();
         }
-        
+
         /// <summary>
         /// Returns a list of <see cref="Rock.Model.Group">Groups</see> that are descendents of a specified group.
         /// </summary>
@@ -1636,6 +1637,290 @@ namespace Rock.Model
             groupMember = groupMemberService.AsNoFilter().Where( a => a.IsArchived == false && a.GroupId == group.Id && a.PersonId == personId && a.GroupRoleId == groupRoleId ).FirstOrDefault();
             return groupMember != null;
         }
+
+        #region Group Copy Methods
+
+        /// <summary>
+        /// Copies the group (and optionally child groups) along with related entities:
+        /// custom attributes, attribute values, qualifiers, auths, group requirements and group syncs.
+        /// </summary>
+        /// <param name="groupId">The group identifier to copy.</param>
+        /// <param name="includeChildGroups">if set to <c>true</c> [include child groups].</param>
+        /// <param name="currentPersonAliasId">The current person alias identifier.</param>
+        /// <returns>The Id of the new group.</returns>
+        public static int? CopyGroup( int groupId, bool includeChildGroups, int? currentPersonAliasId = null )
+        {
+            if (groupId == 0)
+            {
+                return null;
+            }
+
+            var rockContext = new RockContext();
+            var groupService = new GroupService( rockContext );
+
+            var group = groupService.Queryable( "GroupType" )
+                    .Where( g => g.Id == groupId )
+                    .FirstOrDefault();
+
+            if ( group == null )
+            {
+                return null;
+            }
+
+            Group newGroup = null;
+
+            using ( var cloneGroupActivity = ObservabilityHelper.StartActivity( "Clone Group" ) )
+            {
+                cloneGroupActivity.AddTag( "rock-clone-group", groupId );
+                // Clone the group and related entities inside a transaction.
+                rockContext.WrapTransaction( () =>
+                {
+                    // Track the original and new Guids to ensure Attribute references point to the new groups.
+                    Dictionary<Guid, Guid> groupGuidDictionary = new Dictionary<Guid, Guid>();
+                    newGroup = GenerateGroupCopy( rockContext, groupId, groupGuidDictionary, includeChildGroups, currentPersonAliasId );
+                    rockContext.SaveChanges();
+
+                    GenerateGroupAttributeValues( groupGuidDictionary, rockContext, currentPersonAliasId );
+
+                    rockContext.SaveChanges();
+                } );
+            }
+
+            return newGroup?.Id;
+        }
+
+        /// <summary>
+        /// This method generates a copy of the given group along with any child groups, as well as any
+        /// custom attributes, attribute values, qualifiers, locations (except member addresses), auths, group requirements and group syncs.
+        /// </summary>
+        /// <param name="rockContext">
+        /// The RockContext to be used for the copy actions
+        /// (so the action can be wrapped in a transaction and child groups can be recursively copied).
+        /// </param>
+        /// <param name="sourceGroupId">The identifier of the group to copy from.</param>
+        /// <param name="groupGuidDictionary">The dictionary containing the original group guids and the corresponding copied group guids.</param>
+        /// <param name="includeChildGroups">if set to <c>true</c> [include child groups].</param>
+        /// <param name="currentPersonAliasId">The current person alias identifier.</param>
+        /// <param name="parentGroupId">Is this source group the root of the copy operation. Recursive calls to this method set this param as false.</param>
+        /// <returns></returns>
+        private static Group GenerateGroupCopy( RockContext rockContext, int sourceGroupId, Dictionary<Guid, Guid> groupGuidDictionary, bool includeChildGroups, int? currentPersonAliasId = null, int? parentGroupId = null )
+        {
+            var authService = new AuthService( rockContext );
+            var groupService = new GroupService( rockContext );
+
+            var sourceGroup = groupService.Get( sourceGroupId );
+            sourceGroup.LoadAttributes( rockContext );
+
+            var targetGroup = sourceGroup.CloneWithoutIdentity();
+            targetGroup.CreatedByPersonAliasId = currentPersonAliasId;
+            targetGroup.ModifiedByPersonAliasId = currentPersonAliasId;
+            targetGroup.IsSystem = false;
+
+            groupGuidDictionary.Add( sourceGroup.Guid, targetGroup.Guid );
+
+            if ( parentGroupId == null )
+            {
+                // The root of the copy operation.
+                targetGroup.Name = sourceGroup.Name + " - Copy";
+            }
+            else
+            {
+                // A child group whose parent group should reflect a copied group.
+                targetGroup.ParentGroupId = parentGroupId;
+            }
+
+            // Copy any group locations and their schedules, but maintain the reference to the Location itself.
+            // NOTE: Exclude members address locations ( GroupMemberPersonAliasId is not null ). 
+            var copiableLocations = sourceGroup.GroupLocations.Where( l => l.GroupMemberPersonAliasId == null );
+            foreach ( var groupLocation in copiableLocations )
+            {
+                var targetGroupLocation = groupLocation.CloneWithoutIdentity();
+                foreach ( var locationSchedule in groupLocation.Schedules )
+                {
+                    targetGroupLocation.Schedules.Add( locationSchedule.CloneWithoutIdentity() );
+                }
+
+                targetGroup.GroupLocations.Add( targetGroupLocation );
+            }
+
+            if ( sourceGroup.ScheduleId.HasValue && sourceGroup.Schedule.ScheduleType != ScheduleType.Named )
+            {
+                targetGroup.Schedule = new Schedule();
+
+                // NOTE: Schedule Name should be set to string.Empty to indicate that it is a Custom or Weekly schedule and not a "Named" schedule.
+                targetGroup.Schedule.Name = string.Empty;
+                targetGroup.Schedule.iCalendarContent = sourceGroup.Schedule.iCalendarContent;
+                targetGroup.Schedule.WeeklyDayOfWeek = sourceGroup.Schedule.WeeklyDayOfWeek;
+                targetGroup.Schedule.WeeklyTimeOfDay = sourceGroup.Schedule.WeeklyTimeOfDay;
+            }
+
+            // Need to add the Group and SaveContext here so the new GroupId can be populated for relating to other entities.
+            groupService.Add( targetGroup );
+            rockContext.SaveChanges();
+
+            targetGroup.LoadAttributes( rockContext );
+
+            Rock.Attribute.Helper.CopyAttributes( sourceGroup, targetGroup, rockContext );
+            CopyGroupMemberAttributesAndQualifiers( rockContext, sourceGroup, targetGroup );
+
+            // Set the attribute.EntityId to the new group Id.
+            foreach ( var targetAttributeValue in targetGroup?.AttributeValues )
+            {
+                if (targetAttributeValue.Value == null)
+                {
+                    // Skip empty values.
+                    continue;
+                }
+
+                targetAttributeValue.Value.EntityId = targetGroup.Id;
+            }
+
+            targetGroup.SaveAttributeValues( rockContext );
+
+            var groupEntityTypeId = EntityTypeCache.Get( typeof( Group ) ).Id;
+
+            // Get all auths either for the GroupId (where this group is allowed to access another entity)
+            // or the EntityId and EntityTypeId (where rules exist to access this group).
+            // NOTE: We're copying auths where the old group was used as the role for access to another entity to
+            // maintain existing the behavior. We've added behavior to copy the auths for actions on this group.
+            var auths = authService.Queryable().Where(
+                a => a.GroupId == sourceGroupId ||
+                ( a.EntityId == sourceGroupId && a.EntityTypeId == groupEntityTypeId )
+            ).OrderBy( a => a.Order );
+
+            // Copy Auths (replacing Ids where applicable).
+            foreach ( var auth in auths )
+            {
+                var newAuth = auth.CloneWithoutIdentity();
+
+                // Auths for actions on this group.
+                if (newAuth.EntityTypeId == groupEntityTypeId && newAuth.EntityId == sourceGroupId)
+                {
+                    newAuth.EntityId = targetGroup.Id;
+                }
+
+                // Auths where this group is used to allow/deny access.
+                if ( newAuth.GroupId == sourceGroupId)
+                {
+                    newAuth.GroupId = targetGroup.Id;
+                }
+
+                authService.Add( newAuth );
+            }
+
+            // Copy group sync settings.
+            foreach ( var sourceSyncSetting in sourceGroup.GroupSyncs )
+            {
+                var targetSyncSetting = sourceSyncSetting.CloneWithoutIdentity();
+                targetGroup.GroupSyncs.Add( targetSyncSetting );
+            }
+
+            // Copy the group-specific requirements.
+            foreach ( var groupRequirement in sourceGroup.GroupRequirements )
+            {
+                GroupRequirement newGroupRequirement = groupRequirement.CloneWithoutIdentity();
+                targetGroup.GroupRequirements.Add( newGroupRequirement );
+            }
+
+            if ( includeChildGroups )
+            {
+                foreach ( var childGroup in sourceGroup.Groups )
+                {
+                    targetGroup.Groups.Add( GenerateGroupCopy( rockContext, childGroup.Id, groupGuidDictionary, includeChildGroups, currentPersonAliasId, targetGroup.Id ) );
+                }
+            }
+
+            Rock.Security.Authorization.Clear();
+
+            rockContext.SaveChanges();
+            return targetGroup;
+        }
+
+        /// <summary>
+        /// Copies the group member attributes and qualifiers from one group to another.
+        /// The qualifier value is set to the targetGroup.Id.
+        /// </summary>
+        /// <param name="rockContext">The rockContext to use for the operation.</param>
+        /// <param name="sourceGroup">The group from which to copy.</param>
+        /// <param name="targetGroup">The group to copy to.</param>
+        /// <returns>A List of Attributes whose identifiers and qualifiers have been replaced with the target group identifier.</returns>
+        private static void CopyGroupMemberAttributesAndQualifiers( RockContext rockContext, Group sourceGroup, Group targetGroup )
+        {
+            var attributeService = new AttributeService( rockContext );
+
+            // Get the attributes for inherited and current group members.
+            var sourceGroupMemberAttributes = attributeService.GetGroupMemberAttributesCombined( sourceGroup.Id, sourceGroup.GroupTypeId );
+
+            foreach ( var attribute in sourceGroupMemberAttributes )
+            {
+                var newAttribute = attribute.Clone( false );
+                newAttribute.Id = 0;
+                newAttribute.Guid = Guid.NewGuid();
+                newAttribute.IsSystem = false;
+                newAttribute.EntityTypeQualifierValue = targetGroup.Id.ToString();
+
+                foreach ( var qualifier in attribute.AttributeQualifiers )
+                {
+                    var newQualifier = qualifier.Clone( false );
+                    newQualifier.Id = 0;
+                    newQualifier.Guid = Guid.NewGuid();
+                    newQualifier.IsSystem = false;
+
+                    newAttribute.AttributeQualifiers.Add( newQualifier );
+                }
+
+                attributeService.Add( newAttribute );
+            }
+        }
+
+        /// <summary>
+        /// This method takes the attribute values of the original group(s), and creates copies of them that point to the copied group(s). 
+        /// </summary>
+        /// <param name="groupGuidDictionary">The dictionary containing the original page guids and the corresponding copied page guids.</param>
+        /// <param name="rockContext">The rock context.</param>
+        /// <param name="currentPersonAliasId">The current person alias identifier.</param>
+        private static void GenerateGroupAttributeValues( Dictionary<Guid, Guid> groupGuidDictionary, RockContext rockContext, int? currentPersonAliasId = null )
+        {
+            var attributeValueService = new AttributeValueService( rockContext );
+            var groupService = new GroupService( rockContext );
+            var groupEntityTypeGuid = Rock.SystemGuid.EntityType.GROUP.AsGuid();
+            var groupFieldTypeGuid = Rock.SystemGuid.FieldType.GROUP.AsGuid();
+
+            // Get the list of attribute values for the source instances.
+            var attributeValues = attributeValueService.Queryable().Where( a =>
+                a.Attribute.EntityType.Guid == groupEntityTypeGuid && groupGuidDictionary.Values.Contains( a.Guid ) )
+                .ToList();
+
+            foreach ( var attributeValue in attributeValues )
+            {
+                var attribute = AttributeCache.Get( attributeValue.AttributeId );
+                var fieldType = attribute?.FieldType.Field as Field.FieldType;
+                var currentValue = attributeValue;
+
+                var newAttributeValue = attributeValue.CloneWithoutIdentity();
+                newAttributeValue.CreatedByPersonAliasId = currentPersonAliasId;
+                newAttributeValue.ModifiedByPersonAliasId = currentPersonAliasId;
+                
+                if ( fieldType != null && currentValue != null && currentValue.Value != null )
+                {
+                    newAttributeValue.Value = fieldType.GetCopyValue( currentValue.Value, rockContext );
+                }
+
+                if ( attributeValue.Attribute.FieldType.Guid == groupFieldTypeGuid )
+                {
+                    if ( groupGuidDictionary.ContainsKey( attributeValue.Value.AsGuid() ) )
+                    {
+                        newAttributeValue.Value = groupGuidDictionary[attributeValue.Value.AsGuid()].ToString();
+                    }
+                }
+
+                attributeValueService.Add( newAttributeValue );
+            }
+
+            rockContext.SaveChanges();
+        }
+
+        #endregion
 
         #region Actions
 
