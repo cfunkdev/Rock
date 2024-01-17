@@ -70,7 +70,7 @@
     const loadedItems = ref<BlockTemplatePickerGetBlockTemplatesResultsBag[]>([]);
 
     const http = useHttp();
-    const view = ref<"CUSTOM" | "SELECT">(props.templateBlockValueGuid ? "SELECT" : "CUSTOM");
+    const view = ref<"CUSTOM" | "SELECT">(props.templateKey ? "SELECT" : "CUSTOM");
 
     /**
      * Loads the items from the server.
