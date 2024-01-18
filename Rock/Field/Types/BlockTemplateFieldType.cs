@@ -146,7 +146,7 @@ namespace Rock.Field.Types
                 var templateGuid = parts[0];
                 if ( templateGuid == _CustomGuid.ToString() )
                 {
-                    templateGuid = string.Empty;
+                    templateGuid = Guid.Empty.ToString();
                     if ( parts.Length >= 2 )
                     {
                         return $"{templateGuid}|{parts[1]}";
@@ -168,7 +168,7 @@ namespace Rock.Field.Types
             if ( parts.Length >= 1 )
             {
                 var templateGuid = parts[0];
-                if ( templateGuid.IsNullOrWhiteSpace() )
+                if ( templateGuid == Guid.Empty.ToString() )
                 {
                     templateGuid = _CustomGuid.ToString();
                     if ( parts.Length >= 2 )
