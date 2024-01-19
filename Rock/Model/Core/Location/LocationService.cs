@@ -18,6 +18,9 @@ using System;
 using System.Collections.Generic;
 using System.Data.Entity.Spatial;
 using System.Linq;
+
+using Microsoft.Web.XmlTransform;
+
 using Rock.Address;
 using Rock.Data;
 using Rock.Field.Types;
@@ -901,6 +904,27 @@ namespace Rock.Model
         {
             var groupLocationQuery = new GroupLocationService( this.Context as RockContext ).Queryable().Where( gl => gl.Schedules.Any( s => s.Id == scheduleId ) && gl.GroupId == groupId );
             return this.Queryable().Where( l => groupLocationQuery.Any( gl => gl.LocationId == l.Id ) );
+        }
+
+        /// <summary>
+        /// Toggles the IsActive property on the specified location.
+        /// Called primarily when opening or closing a room, this action will be logged to the history table.
+        /// </summary>
+        /// <param name="locationId">The location identifier.</param>
+        /// <param name="isActive">if set to <c>true</c> [is active].</param>
+        public void ToggleActiveStatus( int locationId, bool isActive )
+        {
+            var location = this.Get( locationId );
+            if ( location != null )
+            {
+                var changeList = new History.HistoryChangeList();
+                changeList.AddChange( History.HistoryVerb.Modify, History.HistoryChangeType.Property, "Active", isActive.ToString(), location.IsActive.ToString() );
+                HistoryService.SaveChanges( this.Context as RockContext, typeof( Location ), Rock.SystemGuid.Category.HISTORY_LOCATION.AsGuid(), locationId, changeList, false );
+                location.IsActive = isActive;
+
+                this.Context.SaveChanges();
+                Rock.CheckIn.KioskDevice.Clear();
+            }
         }
     }
 
