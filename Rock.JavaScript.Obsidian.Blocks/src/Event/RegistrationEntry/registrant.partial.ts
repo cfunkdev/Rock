@@ -267,7 +267,7 @@ export default defineComponent({
                 const registrant = this.registrationEntryState.registrants[i];
                 const info = getRegistrantBasicInfo(registrant, this.viewModel.registrantForms);
 
-                if (!usedFamilyGuids[registrant.familyGuid] && info?.firstName && info?.lastName) {
+                if (registrant.familyGuid && !usedFamilyGuids[registrant.familyGuid] && info?.firstName && info?.lastName) {
                     options.push({
                         text: `${info.firstName} ${info.lastName}`,
                         value: registrant.familyGuid
@@ -287,7 +287,7 @@ export default defineComponent({
             }
 
             // Add the current person (registrant) if not already added
-            const familyGuid = usedFamilyGuids[this.currentRegistrant.familyGuid] == true
+            const familyGuid = !this.currentRegistrant.familyGuid || usedFamilyGuids[this.currentRegistrant.familyGuid] == true
                 ? newGuid()
                 : this.currentRegistrant.familyGuid;
             options.push({
@@ -362,14 +362,18 @@ export default defineComponent({
                     });
 
                     if (result.isSuccess && result.data) {
-                        this.signatureSource = (result.data as Record<string, string>).documentHtml;
-                        this.signatureToken = (result.data as Record<string, string>).securityToken;
+                        const data = (result.data as Record<string, string>);
 
-                        lastFormIndex += 1;
+                        if (data.existingSignatureDocumentGuid) {
+                            this.currentRegistrant.existingSignatureDocumentGuid = data.existingSignatureDocumentGuid;
+                        }
+                        else {
+                            this.signatureSource = data.documentHtml;
+                            this.signatureToken = data.securityToken;
+
+                            lastFormIndex += 1;
+                        }
                     }
-                    // If the response is successful but the backend does not return a data, then the Signature Document is not required for the current
-                    // registrant. We may continue execution.
-                    else if (result.isSuccess) { }
                     else {
                         console.error(result.data);
                         return;
@@ -542,13 +546,26 @@ export default defineComponent({
             this.currentRegistrant.feeItemQuantities = newValue;
 
             this.updateFeeItemsRemaining();
+        },
+
+        onSetFamilyGuid(familyGuid: Guid): void {
+            if (familyGuid !== this.currentRegistrant.familyGuid) {
+                this.currentRegistrant.familyGuid = familyGuid;
+                this.currentRegistrant.personGuid = null;
+            }
+        },
+
+        onSetPersonGuid(guid: Guid): void {
+            if (guid !== this.currentRegistrant.personGuid) {
+                this.currentRegistrant.personGuid = guid;
+
+                if (this.familyMember) {
+                    this.currentRegistrant.familyGuid = this.familyMember.familyGuid;
+                }
+            }
         }
     },
     watch: {
-        "currentRegistrant.familyGuid"(): void {
-            // Clear the person guid if the family changes
-            this.currentRegistrant.personGuid = null;
-        },
         familyMember: {
             handler(): void {
                 if (!this.familyMember) {
@@ -584,11 +601,11 @@ export default defineComponent({
         <template v-if="isDataForm">
             <template v-if="currentFormIndex === 0">
                 <div v-if="familyOptions.length > 1" class="well js-registration-same-family">
-                    <RadioButtonList :label="(firstName || uppercaseRegistrantTerm) + ' is in the same immediate family as'" rules='required:{"allowEmptyString": true}' v-model="currentRegistrant.familyGuid" :items="familyOptions" validationTitle="Family" />
+                    <RadioButtonList :label="(firstName || uppercaseRegistrantTerm) + ' is in the same immediate family as'" rules="required" :modelValue="currentRegistrant.familyGuid" @update:modelValue="onSetFamilyGuid" :items="familyOptions" validationTitle="Family" />
                 </div>
                 <div v-if="familyMemberOptions.length" class="row">
                     <div class="col-md-6">
-                        <DropDownList v-model="currentRegistrant.personGuid" :items="familyMemberOptions" label="Family Member to Register" />
+                        <DropDownList :modelValue="currentRegistrant.personGuid" @update:modelValue="onSetPersonGuid" :items="familyMemberOptions" label="Family Member to Register" />
                     </div>
                 </div>
             </template>

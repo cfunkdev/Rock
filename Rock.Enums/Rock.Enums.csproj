@@ -77,6 +77,9 @@
     <Compile Include="Communication\CommunicationMessageFilter.cs" />
     <Compile Include="Communication\CommunicationRecipientStatus.cs" />
     <Compile Include="Communication\CommunicationStatus.cs" />
+    <Compile Include="Controls\FieldSource.cs" />
+    <Compile Include="Controls\AttributeFormat.cs" />
+    <Compile Include="Controls\FieldFormat.cs" />
     <Compile Include="Controls\DayOfWeek.cs" />
     <Compile Include="Communication\NotificationClassification.cs" />
     <Compile Include="Communication\SegmentCriteria.cs" />
@@ -126,12 +129,14 @@
     <Compile Include="Crm\AuthenticationServiceType.cs" />
     <Compile Include="Crm\EmailPreference.cs" />
     <Compile Include="Crm\Gender.cs" />
+    <Compile Include="Core\KeyboardInputMode.cs" />
     <Compile Include="Crm\PersonalizationType.cs" />
     <Compile Include="Engagement\StreakOccurrenceFrequency.cs" />
     <Compile Include="Engagement\StreakStructureType.cs" />
     <Compile Include="EnumDomainAttribute.cs" />
     <Compile Include="Event\AttendanceGraphBy.cs" />
     <Compile Include="Event\AttendanceStatus.cs" />
+    <Compile Include="Event\CheckInStatus.cs" />
     <Compile Include="Event\InteractiveExperienceApprovalStatus.cs" />
     <Compile Include="Event\InteractiveExperienceCampusBehavior.cs" />
     <Compile Include="Event\InteractiveExperiencePushNotificationType.cs" />
@@ -179,6 +184,5 @@
     <Compile Include="Workflow\WorkflowTriggerType.cs" />
     <Compile Include="Workflow\WorkflowTriggerValueChangeType.cs" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

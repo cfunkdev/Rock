@@ -1002,11 +1002,9 @@ namespace Rock.Blocks.Security
                 var attributesForPerson = currentPerson ?? new Person();
                 attributesForPerson.LoadAttributes( rockContext );
 
-                accountEntryPersonInfoBag = new AccountEntryPersonInfoBag
-                {
-                    Attributes = attributesForPerson.GetPublicAttributesForEdit( attributesForPerson, attributeFilter: a1 => personAttributes.Any( a => a.Guid == a1.Guid ), enforceSecurity: false ),
-                    AttributeValues = attributesForPerson.GetPublicAttributeValuesForEdit( attributesForPerson, attributeFilter: a1 => personAttributes.Any( a => a.Guid == a1.Guid ), enforceSecurity: false ),
-                };
+                accountEntryPersonInfoBag = accountEntryPersonInfoBag ?? new AccountEntryPersonInfoBag();
+                accountEntryPersonInfoBag.Attributes = attributesForPerson.GetPublicAttributesForEdit( attributesForPerson, attributeFilter: a1 => personAttributes.Any( a => a.Guid == a1.Guid ), enforceSecurity: false );
+                accountEntryPersonInfoBag.AttributeValues = attributesForPerson.GetPublicAttributeValuesForEdit( attributesForPerson, attributeFilter: a1 => personAttributes.Any( a => a.Guid == a1.Guid ), enforceSecurity: false );
             }
 
             return new AccountEntryInitializationBox
@@ -1094,7 +1092,7 @@ namespace Rock.Blocks.Security
             // Remove the http and https schemes before checking if URL contains XSS objects.
             if ( decodedUrl.Replace( "https://", string.Empty )
                 .Replace( "http://", string.Empty )
-                .HasXssObjects() )
+                .RedirectUrlContainsXss() )
             {
                 return null;
             }
