@@ -220,6 +220,11 @@
             required: true
         },
 
+        childLabel: {
+            type: String as PropType<string>,
+            default: "Child"
+        },
+
         disabled: {
             type: Boolean as PropType<boolean>,
             default: false
@@ -240,7 +245,7 @@
     //#region Computed Values
 
     const caption = computed<string>(() => {
-        return toTitleCase(`${getNumberAsOrdinalString(props.childNumber)} Child`);
+        return toTitleCase(`${getNumberAsOrdinalString(props.childNumber)} ${props.childLabel}`);
     });
 
     /*

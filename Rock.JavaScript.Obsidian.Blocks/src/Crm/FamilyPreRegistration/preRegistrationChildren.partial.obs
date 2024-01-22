@@ -5,6 +5,7 @@
             :childNumber="index + 1"
             :child="child"
             :disabled="disabled"
+            :childLabel="childLabel"
             @remove="$emit('removeChild', child)" />
         <hr>
     </template>
@@ -50,6 +51,11 @@
         disabled: {
             type: Boolean as PropType<boolean>,
             default: false
+        },
+
+        childLabel: {
+            type: String as PropType<string>,
+            default: "Child"
         }
     });
 
