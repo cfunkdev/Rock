@@ -1160,6 +1160,7 @@
     <Compile Include="Model\Group\GroupSync\GroupSyncInfo.cs" />
     <Compile Include="Model\Group\GroupSync\GroupSyncResult.cs" />
     <Compile Include="Model\Group\GroupSync\GroupSyncService.cs" />
+    <Compile Include="Model\Group\Group\Options\CopyGroupOptions.cs" />
     <Compile Include="Model\Security\RemoteAuthenticationSessionExtensions.cs" />
     <Compile Include="Model\Security\RemoteAuthenticationSessionService.cs" />
     <Compile Include="Net\BrowserCookie.cs" />

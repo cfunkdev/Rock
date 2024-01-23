@@ -30,6 +30,7 @@ using Rock.Constants;
 using Rock.Data;
 using Rock.Enums.Group;
 using Rock.Model;
+using Rock.Model.Groups.Group.Options;
 using Rock.Security;
 using Rock.Utility;
 using Rock.Utility.Enums;
@@ -1371,9 +1372,15 @@ namespace RockWeb.Blocks.Groups
             bool includeChildGroups = cbCopyGroupIncludeChildGroups.Checked;
             int? newGroupId = null;
 
-            if (groupId > 0)
+            if ( groupId > 0 )
             {
-                newGroupId = GroupService.CopyGroup( groupId, includeChildGroups, CurrentPersonAliasId );
+                var copyGroupOptions = new CopyGroupOptions
+                {
+                    GroupId = groupId,
+                    IncludeChildGroups = includeChildGroups,
+                    CreatedByPersonAliasId = CurrentPersonAliasId
+                };
+                newGroupId = GroupService.CopyGroup( copyGroupOptions );
             }
 
             var qryParams = new Dictionary<string, string>();

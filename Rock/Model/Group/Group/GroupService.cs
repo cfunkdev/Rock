@@ -23,6 +23,7 @@ using System.Linq;
 using System.Text;
 
 using Rock.Data;
+using Rock.Model.Groups.Group.Options;
 using Rock.Observability;
 using Rock.Web.Cache;
 
@@ -1644,13 +1645,11 @@ namespace Rock.Model
         /// Copies the group (and optionally child groups) along with related entities:
         /// custom attributes, attribute values, qualifiers, auths, group requirements and group syncs.
         /// </summary>
-        /// <param name="groupId">The group identifier to copy.</param>
-        /// <param name="includeChildGroups">if set to <c>true</c> [include child groups].</param>
-        /// <param name="currentPersonAliasId">The current person alias identifier.</param>
+        /// <param name="copyGroupOptions">The options to use for the copy operation.</param>
         /// <returns>The Id of the new group.</returns>
-        public static int? CopyGroup( int groupId, bool includeChildGroups, int? currentPersonAliasId = null )
+        public static int? CopyGroup( CopyGroupOptions copyGroupOptions )
         {
-            if ( groupId == 0 )
+            if ( copyGroupOptions.GroupId == 0 )
             {
                 return null;
             }
@@ -1658,9 +1657,10 @@ namespace Rock.Model
             var rockContext = new RockContext();
             var groupService = new GroupService( rockContext );
 
-            var group = groupService.Queryable( "GroupType" )
-                    .Where( g => g.Id == groupId )
-                    .FirstOrDefault();
+            var group = groupService.Queryable()
+                .Include( g => g.GroupType )
+                .Where( g => g.Id == copyGroupOptions.GroupId )
+                .FirstOrDefault();
 
             if ( group == null )
             {
@@ -1671,15 +1671,15 @@ namespace Rock.Model
 
             using ( var cloneGroupActivity = ObservabilityHelper.StartActivity( "Clone Group" ) )
             {
-                cloneGroupActivity.AddTag( "rock-clone-group", groupId );
+                cloneGroupActivity.AddTag( "rock-clone-group", copyGroupOptions.GroupId );
                 // Clone the group and related entities inside a transaction.
                 rockContext.WrapTransaction( () =>
                 {
                     // Track the original and new Guids to ensure Attribute references point to the new groups.
                     Dictionary<Guid, Guid> groupGuidDictionary = new Dictionary<Guid, Guid>();
-                    newGroup = GenerateGroupCopy( rockContext, groupId, groupGuidDictionary, includeChildGroups, currentPersonAliasId );
+                    newGroup = GenerateGroupCopy( rockContext, copyGroupOptions, groupGuidDictionary );
 
-                    GenerateGroupAttributeValues( groupGuidDictionary, rockContext, currentPersonAliasId );
+                    GenerateGroupAttributeValues( groupGuidDictionary, rockContext, copyGroupOptions.CreatedByPersonAliasId );
 
                     rockContext.SaveChanges();
                 } );
@@ -1695,28 +1695,28 @@ namespace Rock.Model
         ///     locations (except member addresses), auths, group requirements and group syncs.
         ///     Child groups will be recursively copied when specified.
         /// </summary>
-        /// <param name="rockContext"> The RockContext to be used for the copy actions.</param>
-        /// <param name="sourceGroupId">The identifier of the group to copy from.</param>
+        /// <param name="rockContext"> The RockContext to be used for the copy operation.</param>
+        /// <param name="copyGroupOptions">
+        ///     The <see cref="Rock.Model.Groups.Group.Options.CopyGroupOptions"/> to use for the copy operation.
+        /// </param>
         /// <param name="groupGuidDictionary">
         ///     The dictionary containing the original group guids and the corresponding copied group guids.
         ///     This provides the caller with a mapping of all cloned group Guids where
         ///     the key is the source/copied group and the value is the new target/new group.
         /// </param>
-        /// <param name="includeChildGroups">if set to <c>true</c> [include child groups].</param>
-        /// <param name="currentPersonAliasId">The current person alias identifier.</param>
         /// <param name="parentGroupId">The parent group when a recursive call is made otherwise null for the root/source of the copy operation.</param>
-        /// <returns>a new Group which is copy of the requested source Group.</returns>
-        private static Group GenerateGroupCopy( RockContext rockContext, int sourceGroupId, Dictionary<Guid, Guid> groupGuidDictionary, bool includeChildGroups, int? currentPersonAliasId = null, int? parentGroupId = null )
+        /// <returns>A new Group which is copy of the <see cref="Rock.Model.Group"/> specified by the GroupId in <seealso cref="Rock.Model.Groups.Group.Options.CopyGroupOptions"/></returns>
+        private static Group GenerateGroupCopy( RockContext rockContext, CopyGroupOptions copyGroupOptions, Dictionary<Guid, Guid> groupGuidDictionary, int? parentGroupId = null )
         {
             var authService = new AuthService( rockContext );
             var groupService = new GroupService( rockContext );
 
-            var sourceGroup = groupService.Get( sourceGroupId );
+            var sourceGroup = groupService.Get( copyGroupOptions.GroupId );
             sourceGroup.LoadAttributes( rockContext );
 
             var targetGroup = sourceGroup.CloneWithoutIdentity();
-            targetGroup.CreatedByPersonAliasId = currentPersonAliasId;
-            targetGroup.ModifiedByPersonAliasId = currentPersonAliasId;
+            targetGroup.CreatedByPersonAliasId = copyGroupOptions.CreatedByPersonAliasId;
+            targetGroup.ModifiedByPersonAliasId = copyGroupOptions.CreatedByPersonAliasId;
             targetGroup.IsSystem = false;
 
             groupGuidDictionary.Add( sourceGroup.Guid, targetGroup.Guid );
@@ -1782,8 +1782,8 @@ namespace Rock.Model
             // NOTE: We're copying auths where the old group was used as the role for access to another entity to
             // maintain existing the behavior. We've added behavior to copy the auths for actions on this group.
             var auths = authService.Queryable().Where(
-                a => a.GroupId == sourceGroupId ||
-                ( a.EntityId == sourceGroupId && a.EntityTypeId == groupEntityTypeId )
+                a => a.GroupId == copyGroupOptions.GroupId ||
+                ( a.EntityId == copyGroupOptions.GroupId && a.EntityTypeId == groupEntityTypeId )
             ).OrderBy( a => a.Order );
 
             // Copy Auths (replacing Ids where applicable).
@@ -1792,13 +1792,13 @@ namespace Rock.Model
                 var newAuth = auth.CloneWithoutIdentity();
 
                 // Auths for actions on this group.
-                if ( newAuth.EntityTypeId == groupEntityTypeId && newAuth.EntityId == sourceGroupId )
+                if ( newAuth.EntityTypeId == groupEntityTypeId && newAuth.EntityId == copyGroupOptions.GroupId )
                 {
                     newAuth.EntityId = targetGroup.Id;
                 }
 
                 // Auths where this group is used to allow/deny access.
-                if ( newAuth.GroupId == sourceGroupId )
+                if ( newAuth.GroupId == copyGroupOptions.GroupId )
                 {
                     newAuth.GroupId = targetGroup.Id;
                 }
@@ -1820,11 +1820,11 @@ namespace Rock.Model
                 targetGroup.GroupRequirements.Add( newGroupRequirement );
             }
 
-            if ( includeChildGroups )
+            if ( copyGroupOptions.IncludeChildGroups )
             {
                 foreach ( var childGroup in sourceGroup.Groups )
                 {
-                    targetGroup.Groups.Add( GenerateGroupCopy( rockContext, childGroup.Id, groupGuidDictionary, includeChildGroups, currentPersonAliasId, targetGroup.Id ) );
+                    targetGroup.Groups.Add( GenerateGroupCopy( rockContext, copyGroupOptions, groupGuidDictionary, targetGroup.Id ) );
                 }
             }
 
@@ -1926,7 +1926,9 @@ namespace Rock.Model
             // It should be safe to reference the same schedule when it's named.
             // This should merely relate the schedule instead of creating a new record.
             if ( sourceSchedule.ScheduleType == ScheduleType.Named )
+            {
                 return sourceSchedule;
+            }
 
             var newSchedule = new Schedule();
 
