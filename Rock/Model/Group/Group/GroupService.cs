@@ -1649,7 +1649,7 @@ namespace Rock.Model
         /// <returns>The Id of the new group.</returns>
         public static int? CopyGroup( CopyGroupOptions copyGroupOptions )
         {
-            if ( copyGroupOptions.GroupId == 0 )
+            if ( copyGroupOptions == null || copyGroupOptions.GroupId == 0 )
             {
                 return null;
             }
@@ -1659,8 +1659,7 @@ namespace Rock.Model
 
             var group = groupService.Queryable()
                 .Include( g => g.GroupType )
-                .Where( g => g.Id == copyGroupOptions.GroupId )
-                .FirstOrDefault();
+                .FirstOrDefault( g => g.Id == copyGroupOptions.GroupId );
 
             if ( group == null )
             {
@@ -1669,23 +1668,19 @@ namespace Rock.Model
 
             Group newGroup = null;
 
-            using ( var cloneGroupActivity = ObservabilityHelper.StartActivity( "Clone Group" ) )
+            // Clone the group and related entities inside a transaction.
+            rockContext.WrapTransaction( () =>
             {
-                cloneGroupActivity.AddTag( "rock-clone-group", copyGroupOptions.GroupId );
-                // Clone the group and related entities inside a transaction.
-                rockContext.WrapTransaction( () =>
-                {
-                    // Track the original and new Guids to ensure Attribute references point to the new groups.
-                    Dictionary<Guid, Guid> groupGuidDictionary = new Dictionary<Guid, Guid>();
-                    newGroup = GenerateGroupCopy( rockContext, copyGroupOptions, groupGuidDictionary );
+                // Track the original and new Guids to ensure Attribute references point to the new groups.
+                Dictionary<Guid, Guid> groupGuidDictionary = new Dictionary<Guid, Guid>();
+                newGroup = GenerateGroupCopy( rockContext, copyGroupOptions, groupGuidDictionary );
 
-                    GenerateGroupAttributeValues( groupGuidDictionary, rockContext, copyGroupOptions.CreatedByPersonAliasId );
+                GenerateGroupAttributeValues( groupGuidDictionary, rockContext, copyGroupOptions.CreatedByPersonAliasId );
 
-                    rockContext.SaveChanges();
-                } );
+                rockContext.SaveChanges();
+            } );
 
-                Rock.Security.Authorization.Clear();
-            }
+            Rock.Security.Authorization.Clear();
 
             return newGroup?.Id;
         }
@@ -1824,7 +1819,14 @@ namespace Rock.Model
             {
                 foreach ( var childGroup in sourceGroup.Groups )
                 {
-                    targetGroup.Groups.Add( GenerateGroupCopy( rockContext, copyGroupOptions, groupGuidDictionary, targetGroup.Id ) );
+                    var copyChildGroupOptions = new CopyGroupOptions
+                    {
+                        GroupId = childGroup.Id,
+                        IncludeChildGroups = copyGroupOptions.IncludeChildGroups,
+                        CreatedByPersonAliasId = copyGroupOptions.CreatedByPersonAliasId
+                    };
+
+                    targetGroup.Groups.Add( GenerateGroupCopy( rockContext, copyChildGroupOptions, groupGuidDictionary, targetGroup.Id ) );
                 }
             }
 
