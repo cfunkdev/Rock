@@ -97,9 +97,3 @@ export type KeysOfType<TObj, TKey> = {
  * // }
  */
 export type PropertiesOfType<TObj, TKey> = Pick<TObj, KeysOfType<TObj, TKey>>;
-
-export interface IFormatLabelTextParams {
-    prependText?: string;
-    labelTerm: string;
-    appendText?: string;
-  }

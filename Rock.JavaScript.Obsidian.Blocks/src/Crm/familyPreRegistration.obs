@@ -62,9 +62,9 @@
                         </div>
                     </Panel>
 
-                    <Panel :title="formatAdultLabel({ labelTerm: pluralize(adultLabel), appendText: 'Information' })">
+                    <Panel :title="`${pluralize(adultLabel)} Information`">
                         <template #default>
-                            <h4 class="heading-individual">{{ formatAdultLabel({ prependText: "First", labelTerm: adultLabel }) }}</h4>
+                            <h4 class="heading-individual">First {{ adultLabel }}</h4>
 
                             <div class="row">
                                 <div class="col-sm-6">
@@ -266,7 +266,7 @@
 
                             <hr />
 
-                            <h4 class="heading-individual">{{ formatAdultLabel({ prependText: "Second", labelTerm: adultLabel }) }}</h4>
+                            <h4 class="heading-individual">Second {{ adultLabel }}</h4>
 
                             <div class="adult-2-fields">
                                 <div class="row">
@@ -448,6 +448,7 @@
                                                  :disabled="isSaving || isNavigating"
                                                  :lastName="adult1.lastName"
                                                  :childLabel="childLabel"
+                                                 :adultLabel="adultLabel"
                                                  @addChild="onAddChild"
                                                  @removeChild="onRemoveChild" />
                     </Panel>
@@ -474,7 +475,7 @@
 <script setup lang="ts">
     import { computed, nextTick, ref } from "vue";
     import PreRegistrationChildren from "./FamilyPreRegistration/preRegistrationChildren.partial.obs";
-    import { ChildRequestBag, CreateAccountRequest, PersonRequestBag, IFormatLabelTextParams } from "./FamilyPreRegistration/types.partial";
+    import { ChildRequestBag, CreateAccountRequest, PersonRequestBag } from "./FamilyPreRegistration/types.partial";
     import { convertPersonToChildRequest, convertPersonToPersonRequest, createNotEqualRule, createPersonViewModel, createRuleWithReplacement, createRuleWithSuffix, monthAndDayAndYearRequiredRule, monthAndDayRequiredRule, required, } from "./FamilyPreRegistration/utils.partial";
     import AddressControl from "@Obsidian/Controls/addressControl.obs";
     import AttributeValuesContainer from "@Obsidian/Controls/attributeValuesContainer.obs";
@@ -545,8 +546,8 @@
         password: ""
     });
     const disableCaptcha = ref(config.disableCaptchaSupport);
-    const adultLabel = config.adultLabel ?? "Adult";
-    const childLabel = config.childLabel ?? "Child";
+    const adultLabel = config.adultLabel || "Adult";
+    const childLabel = config.childLabel || "Child";
 
     // Create the request bags that will be used to pre-register the adults and children.
     const adult1Request = ref<PersonRequestBag>(convertPersonToPersonRequest(config.adult1));
@@ -612,10 +613,6 @@
         const scheduleDateItem = scheduleDateItems.value.find(s => s.value === plannedVisitDate.value);
 
         return scheduleDateItem?.scheduleTimes ?? [];
-    });
-
-    const adultPanelTitle = computed((): string => {
-        return `${adultLabel} Information`;
     });
 
     //#endregion
@@ -863,20 +860,6 @@
         else if (result?.errorMessage) {
             setErrors(null, result.errorMessage);
         }
-    }
-
-    function formatAdultLabel(params: IFormatLabelTextParams): string {
-        let label = params.labelTerm;
-
-        if (params.prependText) {
-            label = `${params.prependText} ${label}`;
-        }
-
-        if (params.appendText) {
-            label = `${label} ${params.appendText}`;
-        }
-
-        return label;
     }
 
     //#endregion

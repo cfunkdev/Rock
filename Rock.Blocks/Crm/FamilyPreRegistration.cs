@@ -373,7 +373,7 @@ namespace Rock.Blocks.Crm
         Category = CategoryKey.AdultFields,
         DefaultValue = "Adult",
         IsRequired = false,
-        Order = 18 )]
+        Order = 15 )]
 
     #endregion
 
